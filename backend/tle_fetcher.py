@@ -5,7 +5,7 @@ def fetch_tle(save_path="data/latest_tle.txt"):
     """
     Fetches the latest TLE data from Celestrak and saves it to a file.
     """
-    url = "https://celestrak.com/NORAD/elements/gp.php?GROUP=active&FORMAT=tle"
+    url = "https://celestrak.com/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle"
 
     try:
         response = requests.get(url)

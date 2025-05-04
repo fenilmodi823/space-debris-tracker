@@ -1,42 +1,49 @@
 # 🛰 Space Debris Tracker
 
 **Author:** Fenil Modi  
-**Status:** Work in Progress 🚧  
+**Status:** Development | Phase 3 Complete 🚀  
 **Goal:** Predict and visualize satellite and debris trajectories, and alert relevant stakeholders about potential collision risks.
 
-## Project Vision
+---
 
-- Predict and visualize trajectories using TLE data and SPICE kernels.
-- Analyze potential collision risks.
-- Alert stakeholders about possible collisions.
+## 📝 Project Vision
 
-## Tech Stack
+Space debris poses significant risks to operational satellites and space missions.  
+This project aims to:
 
-Python | Skyfield | SpiceyPy | SGP4 | Matplotlib | Plotly | NumPy | Pandas
+- **Fetch** real-time orbital data (TLEs).
+- **Predict** satellite positions using Skyfield and SGP4.
+- **Visualize** satellite positions on a world map.
+- Future phases: **Detect potential collisions** and build a web interface.
 
-## Repository Structure
+---
 
-backend/ - Core modules  
-kernels/ - SPICE kernels  
-data/ - Logs and TLEs  
-notebooks/ - Jupyter experiments  
-docs/ - Documentation  
-tests/ - Future testing  
-requirements.txt - Dependencies  
-README.md - This file
+## 🔍 Tech Stack
 
-## Future Roadmap
+**Language:** Python  
+**Libraries/Tools:** 
+- Skyfield
+- SpiceyPy (future phase)
+- Matplotlib + Cartopy (for visualization)
+- NumPy
+- Pandas
 
-1. TLE fetcher and orbit predictor.
-2. SPICE toolkit integration.
-3. Visualization.
-4. Collision detection.
-5. Alerts system.
+**(Future)** FastAPI or Flask backend | Plotly or CesiumJS for advanced visualization.
 
-## Contributions
+---
 
-Solo project. Feedback welcome!
+## 📂 Repository Structure
 
-## License
+```plaintext
+backend/
+    main.py             # Master controller
+    config.py           # Constants and file paths
+    tle_fetcher.py      # Fetches latest TLE data
+    orbit_predictor.py  # Parses TLEs and predicts satellite positions
+    visualizer.py       # Plots satellite positions on world map
 
-To be decided.
+kernels/                # SPICE kernels (future use)
+data/                   # Logs and fetched TLE data
+notebooks/              # Experiments and prototype code
+docs/                   # Diagrams and documentation
+tests/                  # Placeholder for future tests
