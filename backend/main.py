@@ -19,6 +19,9 @@ def main():
     # Step 3: Visualize orbits
     print("[3/3] Visualizing satellite positions...")
     visualizer.plot_positions(satellites)
+    # To run animation instead of static map
+    visualizer.plot_animated_positions(satellites)
+
     print("Visualization complete.")
 
 if __name__ == "__main__":
