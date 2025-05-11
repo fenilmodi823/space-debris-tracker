@@ -47,19 +47,24 @@ def plot_positions(satellites):
 
 def plot_animated_positions(satellites):
     """
-    Animates the positions of satellites over time on a 2D world map.
+    Animates satellite positions with borders and labels using Cartopy.
     """
     ts = load.timescale()
     t0 = ts.now()
-    time_steps = [t0 + i * 30 for i in range(60)]  # 30 minutes, 30s interval
+    time_steps = [t0 + i * 1 for i in range(120)]  # 2 minutes, 1s interval
 
+    names = [sat.name for sat in satellites[:10]]
     positions = []
-    for sat in satellites[:10]:  # Limit to 10 satellites
+
+    for sat in satellites[:10]:
         track = []
         for t in time_steps:
             try:
                 sp = sat.at(t).subpoint()
-                track.append((sp.latitude.degrees, sp.longitude.degrees))
+                lat = sp.latitude.degrees
+                lon = sp.longitude.degrees
+                lon_wrapped = (lon + 180) % 360 - 180
+                track.append((lat, lon_wrapped))
             except:
                 track.append((np.nan, np.nan))
         positions.append(track)
@@ -68,16 +73,21 @@ def plot_animated_positions(satellites):
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.stock_img()
     ax.coastlines()
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.set_global()
 
     scat = ax.scatter([], [], color='red', s=25)
+    labels = [ax.text(0, 0, '', fontsize=8, transform=ccrs.PlateCarree()) for _ in names]
 
     def update(frame):
         lat_lon = [positions[i][frame] for i in range(len(positions))]
         lats, lons = zip(*lat_lon)
         scat.set_offsets(np.c_[lons, lats])
+        for i, label in enumerate(labels):
+            label.set_position((lons[i] + 1, lats[i] + 1))
+            label.set_text(names[i])
         ax.set_title(f"Satellite Animation – Frame {frame+1} of {len(time_steps)}")
-        return scat,
+        return scat, *labels
 
-    ani = FuncAnimation(fig, update, frames=len(time_steps), interval=150, blit=True)
+    ani = FuncAnimation(fig, update, frames=len(time_steps), interval=200, blit=True)
     plt.show()
