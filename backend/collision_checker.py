@@ -2,7 +2,7 @@ from skyfield.api import load
 from itertools import combinations
 import numpy as np
 
-def check_collisions(satellites, threshold_km=10, minutes=3000, step_seconds=30):
+def check_collisions(satellites, threshold_km=10, minutes=60, step_seconds=30):
     """
     Checks all satellite pairs for potential close approaches within the next 'minutes'.
     Prints alerts if predicted distance drops below 'threshold_km'.
