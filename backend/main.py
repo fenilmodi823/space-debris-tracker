@@ -2,6 +2,8 @@ import tle_fetcher
 import orbit_predictor
 import visualizer  # Same folder imports
 import collision_checker
+import orbit_plotter
+
 
 def main():
     print("=== Space Debris Tracker ===")
@@ -23,9 +25,14 @@ def main():
     print("Collision check complete.\n")
 
     # Step 3: Visualize orbits
-    print("[3/3] Visualizing satellite positions...")
-    visualizer.plot_animated_positions(satellites)
-    print("Visualization complete.")
+    # print("[3/3] Visualizing satellite positions...")
+    # visualizer.plot_animated_positions(satellites)
+    # print("Visualization complete.")
+
+    # Step 4: 3D Orbit Visualization
+    print("[4/4] Plotting 3D satellite orbits...")
+    orbit_plotter.plot_satellite_orbits_3d(satellites)
+    print("3D visualization complete.")
 
 if __name__ == "__main__":
     main()
