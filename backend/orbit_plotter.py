@@ -41,7 +41,6 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
         shell = pv.Sphere(radius=earth_radius + alt, theta_resolution=60, phi_resolution=60)
         plotter.add_mesh(shell, color=color, opacity=opacity)
     """
-    
     # Plot satellites
     for sat in satellites[:20]:
         trail = []
