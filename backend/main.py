@@ -18,6 +18,10 @@ def main():
     satellites = orbit_predictor.load_tles()
     orbit_predictor.print_positions(satellites)
     print("Satellite positions computed.\n")
+    
+    # Step 3: INSERTION POINT: Load famous satellites
+    famous_sats = orbit_predictor.load_famous_sats("data/famous_tles/famous.txt")
+    satellites += famous_sats  # Merge both lists
 
     # Step 2.5: Check for collisions
     print("[2.5/3] Checking for close approaches...")

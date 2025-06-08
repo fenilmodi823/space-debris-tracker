@@ -2,6 +2,15 @@ import pyvista as pv
 import numpy as np
 from skyfield.api import load
 
+# Custom render settings for known satellites
+FAMOUS_SAT_COLORS = {
+    "ISS (ZARYA)": "white",
+    "HUBBLE SPACE TELESCOPE": "violet",
+    "LANDSAT 8": "green",
+    "SENTINEL-2A": "cyan",
+    "STARLINK-30000": "blue"
+}
+
 def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     """
     Plots Earth, satellite positions, orbital trails, labels, and altitude rings using PyVista.
@@ -34,7 +43,7 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     """
     
     # Plot satellites
-    for sat in satellites[:10]:
+    for sat in satellites[:20]:
         trail = []
         try:
             for t in time_steps:
@@ -50,21 +59,27 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
         x, y, z = trail[-1]
         label_pos = (x, y, z + 300)
 
-        plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=150), color='red')
+        # Check if this satellite is in the famous list
+        sat_name_upper = sat.name.upper()
+        color = FAMOUS_SAT_COLORS.get(sat_name_upper, 'red')
+        radius = 250 if sat_name_upper in FAMOUS_SAT_COLORS else 150
+        trail_color = color if sat_name_upper in FAMOUS_SAT_COLORS else 'yellow'
 
+        # Draw satellite as a sphere
+        plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=radius), color=color)
+
+        # Draw label
         plotter.add_point_labels(
             np.array([label_pos]),
             [sat.name],
             font_size=12,
             text_color='white',
-            point_color='black',
+            point_color=color,
             point_size=0,
             shape_opacity=0.6,
             render_points_as_spheres=True
         )
 
+        # Draw orbital trail
         line = pv.Spline(trail, 1000)
-        plotter.add_mesh(line, color='yellow', line_width=2)
-
-    plotter.add_axes()
-    plotter.show()
+        plotter.add_mesh(line, color=trail_color, line_width=2)
