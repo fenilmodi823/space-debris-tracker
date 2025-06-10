@@ -51,7 +51,10 @@ def plot_animated_positions(satellites):
     """
     ts = load.timescale()
     t0 = ts.now()
-    time_steps = [t0 + i * 1 for i in range(120)]  # 2 minutes, 1s interval
+    # Generate 120 time steps spaced 1 second apart. Since Skyfield uses days as
+    # the time unit, convert the step from seconds to days before adding.
+    seconds_per_day = 86400
+    time_steps = [t0 + i / seconds_per_day for i in range(120)]  # 2 minutes
 
     names = [sat.name for sat in satellites[:10]]
     positions = []

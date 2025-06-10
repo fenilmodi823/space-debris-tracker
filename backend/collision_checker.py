@@ -9,7 +9,11 @@ def check_collisions(satellites, threshold_km=10, minutes=60, step_seconds=30):
     """
     ts = load.timescale()
     t0 = ts.now()
-    time_steps = [t0 + i * step_seconds for i in range((minutes * 60) // step_seconds)]
+    # Skyfield Time objects treat addition as days, so convert step_seconds
+    # from seconds to fractional days before adding.
+    seconds_per_day = 86400
+    time_steps = [t0 + (i * step_seconds) / seconds_per_day
+                  for i in range((minutes * 60) // step_seconds)]
 
     print(f"Checking {len(satellites)} satellites for next {minutes} minutes...")
 

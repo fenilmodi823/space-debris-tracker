@@ -8,7 +8,11 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     """
     ts = load.timescale()
     t0 = ts.now()
-    time_steps = [t0 + i * step_seconds for i in range((minutes * 60) // step_seconds)]
+    # Convert step_seconds from seconds to days when adding to the Skyfield Time
+    # object, otherwise each step would advance by that many **days**.
+    seconds_per_day = 86400
+    time_steps = [t0 + (i * step_seconds) / seconds_per_day
+                  for i in range((minutes * 60) // step_seconds)]
 
     plotter = pv.Plotter(window_size=(1000, 700))
     plotter.set_background("black")
