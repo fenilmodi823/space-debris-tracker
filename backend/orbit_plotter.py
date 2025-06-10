@@ -1,8 +1,8 @@
 import pyvista as pv
 import numpy as np
-from skyfield.api import load
+from skyfield.api import load, wgs84
 
-# Custom render settings for known satellites
+# Custom render settings for well-known satellites
 FAMOUS_SAT_COLORS = {
     "ISS (ZARYA)": "white",
     "HUBBLE SPACE TELESCOPE": "violet",
@@ -13,7 +13,7 @@ FAMOUS_SAT_COLORS = {
 
 def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     """
-    Plots Earth, satellite positions, orbital trails, labels, and altitude rings using PyVista.
+    Plots Earth, satellite positions, orbital trails, labels, and click interactivity using PyVista.
     """
     ts = load.timescale()
     t0 = ts.now()
@@ -22,27 +22,13 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     plotter = pv.Plotter(window_size=(1000, 700))
     plotter.set_background("black")
 
-    # Earth radius in km
-    earth_radius = 6371.0
-
-    # Draw Earth
+    # Earth
+    earth_radius = 6371.0  # km
     earth = pv.Sphere(radius=earth_radius, theta_resolution=60, phi_resolution=60)
     plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')
 
-    # Altitude rings
-    """
-    altitude_rings = [
-        (2000, 'limegreen', 0.25, "LEO"),
-        (20000, 'gold', 0.2, "MEO"),
-        (35786, 'skyblue', 0.2, "GEO")
-    ]
-   
-    for alt, color, opacity, label in altitude_rings:
-        shell = pv.Sphere(radius=earth_radius + alt, theta_resolution=60, phi_resolution=60)
-        plotter.add_mesh(shell, color=color, opacity=opacity)
-    """
-    # Plot satellites
-    for sat in satellites[:20]:
+    # Satellites and trails
+    for sat in satellites[:10]:  # Limit to avoid lag
         trail = []
         try:
             for t in time_steps:
@@ -58,16 +44,16 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
         x, y, z = trail[-1]
         label_pos = (x, y, z + 300)
 
-        # Check if this satellite is in the famous list
+        # Style: famous or default
         sat_name_upper = sat.name.upper()
         color = FAMOUS_SAT_COLORS.get(sat_name_upper, 'red')
         radius = 250 if sat_name_upper in FAMOUS_SAT_COLORS else 150
         trail_color = color if sat_name_upper in FAMOUS_SAT_COLORS else 'yellow'
 
-        # Draw satellite as a sphere
+        # Satellite sphere
         plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=radius), color=color)
 
-        # Draw label
+        # Satellite label
         plotter.add_point_labels(
             np.array([label_pos]),
             [sat.name],
@@ -79,6 +65,32 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
             render_points_as_spheres=True
         )
 
-        # Draw orbital trail
+        # Orbital trail
         line = pv.Spline(trail, 1000)
         plotter.add_mesh(line, color=trail_color, line_width=2)
+
+    # === Satellite Picker Logic ===
+    def on_pick(picked_point):
+        print("\n📡 Satellite Clicked!")
+        print(f"Picked Location: {picked_point}")
+
+        for sat in satellites:
+            try:
+                geo = sat.at(ts.now())
+                x, y, z = geo.position.km
+                dist = np.linalg.norm(np.array([x, y, z]) - picked_point)
+                if dist < 300:  # Close enough to be this satellite
+                    subpoint = wgs84.subpoint(geo)
+                    print(f"Name      : {sat.name}")
+                    print(f"Altitude  : {geo.distance().km:.2f} km")
+                    print(f"Latitude  : {subpoint.latitude.degrees:.2f}°")
+                    print(f"Longitude : {subpoint.longitude.degrees:.2f}°")
+                    print("-" * 30)
+                    break
+            except:
+                continue
+
+    # Enable click picking
+    plotter.enable_point_picking(callback=on_pick, show_message=True, use_mesh=True)
+    plotter.add_axes()
+    plotter.show()

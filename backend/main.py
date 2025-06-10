@@ -4,7 +4,6 @@ import visualizer  # Same folder imports
 import collision_checker
 import orbit_plotter
 
-
 def main():
     print("=== Space Debris Tracker ===")
     
