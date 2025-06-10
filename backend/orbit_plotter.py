@@ -31,6 +31,17 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     earth = pv.Sphere(radius=earth_radius, theta_resolution=60, phi_resolution=60)
     plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')
 
+    # Altitude rings
+    altitude_rings = [
+        (2000, 'limegreen', 0.25, "LEO"),
+        (20000, 'gold', 0.2, "MEO"),
+        (35786, 'skyblue', 0.2, "GEO")
+    ]
+
+    for alt, color, opacity, label in altitude_rings:
+        shell = pv.Sphere(radius=earth_radius + alt, theta_resolution=60, phi_resolution=60)
+        plotter.add_mesh(shell, color=color, opacity=opacity)
+
     # Satellites and trails
     for sat in satellites[:10]:  # Limit to avoid lag
         trail = []
