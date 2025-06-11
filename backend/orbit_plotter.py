@@ -1,6 +1,7 @@
 import pyvista as pv
 import numpy as np
 from skyfield.api import load, wgs84
+from datetime import datetime
 
 # Custom render settings for well-known satellites
 FAMOUS_SAT_COLORS = {
@@ -29,7 +30,7 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
     # Earth
     earth_radius = 6371.0  # km
     earth = pv.Sphere(radius=earth_radius, theta_resolution=60, phi_resolution=60)
-    plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')
+    plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')    
 
     # Altitude rings
     altitude_rings = [
@@ -84,26 +85,45 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
         line = pv.Spline(trail, 1000)
         plotter.add_mesh(line, color=trail_color, line_width=2)
 
-    # === Satellite Picker Logic ===
-    def on_pick(picked_point):
-        print("\n📡 Satellite Clicked!")
-        print(f"Picked Location: {picked_point}")
+        # === Overlay info panel on click ===
+        info_text_actor = None  # To keep track of previous text
 
-        for sat in satellites:
-            try:
-                geo = sat.at(ts.now())
-                x, y, z = geo.position.km
-                dist = np.linalg.norm(np.array([x, y, z]) - picked_point)
-                if dist < 300:  # Close enough to be this satellite
-                    subpoint = wgs84.subpoint(geo)
-                    print(f"Name      : {sat.name}")
-                    print(f"Altitude  : {geo.distance().km:.2f} km")
-                    print(f"Latitude  : {subpoint.latitude.degrees:.2f}°")
-                    print(f"Longitude : {subpoint.longitude.degrees:.2f}°")
-                    print("-" * 30)
-                    break
-            except:
-                continue
+        def on_pick(picked_point):
+            nonlocal info_text_actor  # So we can modify the outer variable
+            for sat in satellites:
+                try:
+                    geo = sat.at(ts.now())
+                    pos = geo.position.km
+                    dist = np.linalg.norm(np.array(pos) - picked_point)
+                    if dist < 300:
+                        subpoint = wgs84.subpoint(geo)
+
+                        # Estimate velocity (simple 2-point calc)
+                        t1 = ts.now()
+                        t2 = t1 + 1  # 1 second later
+                        r1 = np.array(sat.at(t1).position.km)
+                        r2 = np.array(sat.at(t2).position.km)
+                        velocity = np.linalg.norm(r2 - r1)
+
+                        # Info to display
+                        info = (
+                            f"📡 {sat.name}\n"
+                            f"Lat      : {subpoint.latitude.degrees:.2f}°\n"
+                            f"Lon      : {subpoint.longitude.degrees:.2f}°\n"
+                            f"Alt      : {geo.distance().km:.2f} km\n"
+                            f"Velocity : {velocity:.2f} km/s\n"
+                            f"Time     : {datetime.utcnow().strftime('%H:%M:%S UTC')}"
+                        )
+
+                        # Remove previous text if exists
+                        if info_text_actor:
+                            plotter.remove_actor(info_text_actor)
+
+                        # Add new info text to the top left
+                        info_text_actor = plotter.add_text(info, position='upper_left', font_size=10, color='white')
+                        break
+                except:
+                    continue
 
     # Enable click picking
     plotter.enable_point_picking(callback=on_pick, show_message=True, use_mesh=True)

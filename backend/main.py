@@ -1,41 +1,57 @@
+# === Space Debris Tracker: Main Script ===
+# This script orchestrates TLE fetching, satellite loading,
+# collision checking, and visualization (2D & 3D).
+
 import tle_fetcher
 import orbit_predictor
-import visualizer  # Same folder imports
+import visualizer
 import collision_checker
 import orbit_plotter
+from orbit_predictor import load_famous_sats
 
 def main():
-    print("=== Space Debris Tracker ===")
-    
-    # Step 1: Fetch TLEs
-    print("[1/3] Fetching latest TLE data...")
+    print("=== Space Debris Tracker ===\n")
+
+    # ------------------------------------------
+    # Step 1: Fetch latest TLE data
+    # ------------------------------------------
+    print("[1/4] Fetching latest TLE data...")
     tle_fetcher.fetch_tle()
-    print("TLE data fetched successfully.\n")
-    
-    # Step 2: Load and predict orbits
-    print("[2/3] Loading satellites and computing positions...")
-    satellites = orbit_predictor.load_tles()
+    print("✔ TLE data saved to data/latest_tle.txt\n")
+
+    # ------------------------------------------
+    # Step 2: Load satellite objects from TLE
+    # ------------------------------------------
+    print("[2/4] Loading satellites and computing positions...")
+    general_sats = orbit_predictor.load_tles()                      # Main catalog
+    famous_sats = load_famous_sats()   # Selected well-known satellites
+
+    # Merge both sets (avoid duplicates by name)
+    sat_dict = {sat.name: sat for sat in general_sats}
+    sat_dict.update({fsat.name: fsat for fsat in famous_sats})
+    satellites = list(sat_dict.values())
+
     orbit_predictor.print_positions(satellites)
-    print("Satellite positions computed.\n")
+    print(f"✔ Total satellites loaded: {len(satellites)}\n")
+
+    # ------------------------------------------
+    # Step 3: Collision prediction
+    # ------------------------------------------
+    print("[3/4] Checking for close approaches...")
+    collision_checker.check_collisions(satellites, threshold_km=10)  # You can adjust this threshold
+    print("✔ Collision analysis complete.\n")
+
+    # ------------------------------------------
+    # Step 4: Visualization (2D + 3D)
+    # ------------------------------------------
+    print("[4/4] Visualizing satellite orbits...")
+    # 2D animation (matplotlib)
+    visualizer.plot_animated_positions(satellites)
     
-    # Step 3: INSERTION POINT: Load famous satellites
-    famous_sats = orbit_predictor.load_famous_sats("data/famous_tles/famous.txt")
-    satellites += famous_sats  # Merge both lists
-
-    # Step 2.5: Check for collisions
-    print("[2.5/3] Checking for close approaches...")
-    collision_checker.check_collisions(satellites, threshold_km=10)
-    print("Collision check complete.\n")
-
-    # Step 3: Visualize orbits
-    # print("[3/3] Visualizing satellite positions...")
-    # visualizer.plot_animated_positions(satellites)
-    # print("Visualization complete.")
-
-    # Step 4: 3D Orbit Visualization
-    print("[4/4] Plotting 3D satellite orbits...")
+    # 3D orbit plot (pyvista)
     orbit_plotter.plot_satellite_orbits_3d(satellites)
-    print("3D visualization complete.")
+    print("✔ Visualizations complete.")
 
+# Run the program
 if __name__ == "__main__":
     main()
