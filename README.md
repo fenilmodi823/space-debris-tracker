@@ -35,22 +35,22 @@ Designed as a final-year engineering capstone with goals extending toward educat
 
 ## 📁 Project Structure
 
-space-debris-tracker/
-│
-├── backend/
-│ ├── main.py # Entry point and pipeline runner
-│ ├── tle_fetcher.py # Downloads latest TLE data
-│ ├── orbit_predictor.py # Loads all satellites + famous ones
-│ ├── visualizer.py # 2D Earth map rendering (static + animated)
-│ ├── orbit_plotter.py # 3D orbital rendering using PyVista
-│ ├── collision_checker.py # Detects close approaches
-│
-├── data/
-│ ├── latest_tle.txt # Fresh TLE data from Celestrak
-│ └── famous_tles/ # Backup TLEs for key satellites
-│
-├── docs/ # Flowcharts, diagrams, final report
-│
+space-debris-tracker/  
+│  
+├── backend/  
+│   ├── main.py               # Entry point and pipeline runner  
+│   ├── tle_fetcher.py        # Downloads latest TLE data  
+│   ├── orbit_predictor.py    # Loads all satellites + famous ones  
+│   ├── visualizer.py         # 2D Earth map rendering (static + animated)  
+│   ├── orbit_plotter.py      # 3D orbital rendering using PyVista  
+│   ├── collision_checker.py  # Detects close approaches  
+│  
+├── data/  
+│   ├── latest_tle.txt        # Fresh TLE data from Celestrak  
+│   └── famous_tles/          # Backup TLEs for key satellites  
+│  
+├── docs/                     # Flowcharts, diagrams, final report  
+│  
 └── README.md
 
 ---
