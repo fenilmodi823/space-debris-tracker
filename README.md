@@ -1,87 +1,114 @@
-
-# 🛰 Space Debris Tracker
+# 🛰️ Space Debris Tracker
 
 **Author:** Fenil Modi  
-**Status:** Phase 5 Complete ✅  
-**Goal:** Predict and visualize satellite orbits and detect potential collisions using real-world space data.
+**Status:** Phase 8 – Advanced Visualization & Documentation  
+**Objective:** Predict satellite orbits, detect potential collisions, and visualize Earth’s orbital environment using real-time data.
 
 ---
 
-## 📌 Project Description
+## 🌍 Project Overview
 
-This project fetches real-time satellite TLE data, predicts current and future orbital positions, detects close approaches, and visualizes orbits using both 2D and animated world maps.
+**Space Debris Tracker** is a Python-based satellite tracking system that:
 
-Future goals include 3D orbital visualization and web integration.
+- Fetches live TLE data from Celestrak  
+- Predicts orbital paths using astronomical algorithms  
+- Visualizes satellites in 2D and interactive 3D views  
+- Tracks close approaches between objects  
+- Highlights famous satellites like the **ISS**, **Hubble**, **Starlink**, **Landsat**, and **Sentinel**
 
----
-
-## 🧠 Features
-
-- ✅ Fetch live satellite TLE data from Celestrak
-- ✅ Parse and predict satellite positions using Skyfield
-- ✅ Visualize satellites on a 2D Earth map (static + animated)
-- ✅ Predict close approaches and alert potential collisions
-- ✅ Label satellites in animated plots
-- ⏳ 3D orbital plot in development (PyVista)
+Designed as a final-year engineering capstone with goals extending toward education, outreach, and future real-time web integration.
 
 ---
 
-## 📂 Project Structure
+## ✨ Features
 
-```
+- ✅ Real-time TLE fetching from [Celestrak](https://celestrak.org)  
+- ✅ Load and visualize well-known satellites  
+- ✅ Position prediction using Skyfield  
+- ✅ 2D static and animated Earth maps (Cartopy + Matplotlib)  
+- ✅ Collision detection engine with proximity alerts  
+- ✅ 3D Earth visualization using PyVista  
+- ✅ Altitude rings (LEO, MEO, GEO) with color-coded shells  
+- ⏳ Info overlay panes and UI interactivity (planned)
+
+---
+
+## 📁 Project Structure
+
 space-debris-tracker/
 │
 ├── backend/
-│   ├── main.py                # Orchestrates the full pipeline
-│   ├── tle_fetcher.py         # Downloads and saves latest TLEs
-│   ├── orbit_predictor.py     # Parses TLEs and predicts current positions
-│   ├── visualizer.py          # 2D + animated Earth map plots
-│   ├── collision_checker.py   # Checks for possible collisions
-│   └── orbit_plotter.py       # (Coming Soon) 3D orbital visualization
+│ ├── main.py # Entry point and pipeline runner
+│ ├── tle_fetcher.py # Downloads latest TLE data
+│ ├── orbit_predictor.py # Loads all satellites + famous ones
+│ ├── visualizer.py # 2D Earth map rendering (static + animated)
+│ ├── orbit_plotter.py # 3D orbital rendering using PyVista
+│ ├── collision_checker.py # Detects close approaches
 │
-├── data/                      # Stores fetched TLE data
+├── data/
+│ ├── latest_tle.txt # Fresh TLE data from Celestrak
+│ └── famous_tles/ # Backup TLEs for key satellites
 │
-├── docs/                      # Flowcharts, diagrams, and report assets
-│
-├── tests/                     # Placeholder for testing scripts
+├── docs/ # Flowcharts, diagrams, final report
 │
 └── README.md
-```
 
 ---
 
-## 🧪 Sample Output
+## 🖼️ Sample Output
 
-```
-[2.5/3] Checking for close approaches...
-⚠️  Close approach: GPS BIIR-2 ↔ GPS BIIRM-4 — 6.82 km at 17:24:30
-```
+[2/4] Loaded 31 satellites from TLE
+[+] Loaded 5 famous satellites from live sources
+[3/4] Checking for close approaches...
+✔ No close approaches found within threshold.
+[4/4] Rendering orbits in 3D...
+✔ Interactive globe launched with labeled trails and shells
 
----
-
-## 🔧 Technologies Used
-
-- **Python**
-- **Skyfield** – for orbital mechanics
-- **Cartopy + Matplotlib** – for map rendering
-- **NumPy** – vector math
-- **PyVista** – (coming) for 3D orbit plots
 
 ---
 
-## 🚧 Roadmap
+## 🧪 Technologies Used
 
-- [x] Phase 1: Project setup and fetcher
-- [x] Phase 2: Position predictor
-- [x] Phase 3: Static map visualization
-- [x] Phase 4: Animated visualization with labels
-- [x] Phase 5: Collision detection
-- [ ] Phase 6: Flask/FastAPI backend
-- [ ] Phase 7: PyVista 3D orbit visualization
-- [ ] Phase 8: Report + university submission
+- **Python 3**
+- **Skyfield** – Accurate orbital mechanics
+- **Cartopy** – Geographic projections
+- **Matplotlib** – Static and animated 2D visualization
+- **PyVista** – Real-time 3D orbit viewer
+- **NumPy** – Mathematical computations
+- **Requests** – API and TLE fetching
+
+---
+
+## 🗺️ Development Roadmap
+
+| Phase | Feature                                      | Status        |
+|-------|----------------------------------------------|---------------|
+| 1     | Project Setup + TLE Fetcher                  | ✅ Complete    |
+| 2     | Position Prediction                          | ✅ Complete    |
+| 3     | 2D Static Map                                | ✅ Complete    |
+| 4     | Animated Orbit Map                           | ✅ Complete    |
+| 5     | Collision Detection                          | ✅ Complete    |
+| 6     | Flask / FastAPI Backend                      | ⏳ On Hold     |
+| 7     | Interactive 3D Orbit Visualization           | ✅ Complete    |
+| 8     | Famous Satellite Tracking (Live)             | ✅ Complete    |
+| 9     | Overlay UI Panels, Object Info, Filtering    | 🔜 In Progress |
+| 10    | Final Report, Submission, Packaging          | 🔜 Upcoming    |
+
+---
+
+## 📚 References
+
+- [Celestrak TLE Data](https://celestrak.org/NORAD/elements/)  
+- [LeoLabs Visualization (Inspiration)](https://platform.leolabs.space/visualizations/leo)  
+- [Skyfield Documentation](https://rhodesmill.org/skyfield/)  
+- [PyVista Documentation](https://docs.pyvista.org/)
 
 ---
 
 ## 📜 License
 
-MIT (to be confirmed)
+MIT License *(to be confirmed at final stage)*
+
+---
+
+> “Making space situational awareness accessible and visual — one orbit at a time.” 🌌
