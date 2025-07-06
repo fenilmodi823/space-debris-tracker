@@ -1,13 +1,25 @@
+# visualizer.py
+# Satellite visualization using Cartopy and Matplotlib (2D static + animated)
+
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from matplotlib.animation import FuncAnimation
 from skyfield.api import load
 import numpy as np
+from utils import get_utc_timestamp
 
-def plot_positions(satellites):
+# -----------------------------------------
+# Static Plot of Current Satellite Positions
+# -----------------------------------------
+
+def plot_positions(satellites, max_labels=10):
     """
-    Plots the positions of satellites on a 2D world map using Cartopy.
+    Plots current satellite positions on a 2D world map using Cartopy.
+
+    Parameters:
+        satellites (list): List of Skyfield EarthSatellite objects.
+        max_labels (int): Max number of satellite names to annotate.
     """
     ts = load.timescale()
     t = ts.now()
@@ -16,12 +28,11 @@ def plot_positions(satellites):
 
     for sat in satellites:
         try:
-            geocentric = sat.at(t)
-            subpoint = geocentric.subpoint()
+            subpoint = sat.at(t).subpoint()
             lat = subpoint.latitude.degrees
             lon = subpoint.longitude.degrees
 
-            if not (lat != lat or lon != lon):
+            if not np.isnan(lat) and not np.isnan(lon):
                 lats.append(lat)
                 lons.append(lon)
                 names.append(sat.name)
@@ -37,7 +48,7 @@ def plot_positions(satellites):
 
     ax.scatter(lons, lats, color='red', s=30, label='Satellites', zorder=5)
 
-    for i in range(min(10, len(names))):
+    for i in range(min(max_labels, len(names))):
         ax.text(lons[i] + 2, lats[i] + 2, names[i], fontsize=8, transform=ccrs.PlateCarree())
 
     plt.title("Satellite Positions – Earth View", fontsize=14)
@@ -45,33 +56,42 @@ def plot_positions(satellites):
     plt.tight_layout()
     plt.show()
 
-def plot_animated_positions(satellites):
+# -----------------------------------------
+# Animated Plot of Orbit Motion
+# -----------------------------------------
+
+def plot_animated_positions(satellites, steps=120, interval_ms=200):
     """
-    Animates satellite positions with borders and labels using Cartopy.
+    Animates satellite positions on a rotating 2D Earth map.
+
+    Parameters:
+        satellites (list): List of Skyfield EarthSatellite objects.
+        steps (int): Number of animation frames (time steps).
+        interval_ms (int): Time between frames in milliseconds.
     """
     ts = load.timescale()
     t0 = ts.now()
-    # Generate 120 time steps spaced 1 second apart. Since Skyfield uses days as
-    # the time unit, convert the step from seconds to days before adding.
-    seconds_per_day = 86400
-    time_steps = [t0 + i / seconds_per_day for i in range(120)]  # 2 minutes
+    step_days = 1 / 86400  # 1 second in days
+    time_steps = [t0 + i * step_days for i in range(steps)]
 
-    names = [sat.name for sat in satellites[:10]]
-    positions = []
+    sat_subset = satellites[:10]
+    names = [sat.name for sat in sat_subset]
+    all_tracks = []
 
-    for sat in satellites[:10]:
+    # Precompute position tracks
+    for sat in sat_subset:
         track = []
         for t in time_steps:
             try:
                 sp = sat.at(t).subpoint()
                 lat = sp.latitude.degrees
-                lon = sp.longitude.degrees
-                lon_wrapped = (lon + 180) % 360 - 180
-                track.append((lat, lon_wrapped))
+                lon = ((sp.longitude.degrees + 180) % 360) - 180  # Wrap
+                track.append((lat, lon))
             except:
                 track.append((np.nan, np.nan))
-        positions.append(track)
+        all_tracks.append(track)
 
+    # Setup plot
     fig = plt.figure(figsize=(14, 7))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.stock_img()
@@ -83,14 +103,17 @@ def plot_animated_positions(satellites):
     labels = [ax.text(0, 0, '', fontsize=8, transform=ccrs.PlateCarree()) for _ in names]
 
     def update(frame):
-        lat_lon = [positions[i][frame] for i in range(len(positions))]
-        lats, lons = zip(*lat_lon)
+        latlon = [all_tracks[i][frame] for i in range(len(sat_subset))]
+        lats, lons = zip(*latlon)
+
         scat.set_offsets(np.c_[lons, lats])
         for i, label in enumerate(labels):
             label.set_position((lons[i] + 1, lats[i] + 1))
             label.set_text(names[i])
-        ax.set_title(f"Satellite Animation – Frame {frame+1} of {len(time_steps)}")
+
+        ax.set_title(f"Satellite Animation – Frame {frame + 1} of {steps} | {get_utc_timestamp()}", fontsize=12)
         return scat, *labels
 
-    ani = FuncAnimation(fig, update, frames=len(time_steps), interval=200, blit=True)
+    ani = FuncAnimation(fig, update, frames=steps, interval=interval_ms, blit=True)
+    plt.tight_layout()
     plt.show()

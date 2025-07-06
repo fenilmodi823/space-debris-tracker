@@ -20,35 +20,33 @@ def main():
     print("✔ TLE data saved to data/latest_tle.txt\n")
 
     # ------------------------------------------
-    # Step 2: Load satellite objects from TLE
+    # Step 2: Load famous satellites only
     # ------------------------------------------
-    print("[2/4] Loading satellites and computing positions...")
-    general_sats = orbit_predictor.load_tles()                      # Main catalog
-    famous_sats = load_famous_sats()   # Selected well-known satellites
+    print("[2/4] Loading famous satellites from Celestrak...")
+    satellites = load_famous_sats()
 
-    # Merge both sets (avoid duplicates by name)
-    sat_dict = {sat.name: sat for sat in general_sats}
-    sat_dict.update({fsat.name: fsat for fsat in famous_sats})
-    satellites = list(sat_dict.values())
+    if not satellites:
+        print("No satellites loaded. Check TLE fetch or fallback.")
+        return
 
-    orbit_predictor.print_positions(satellites)
+    # Optional: Print loaded satellite names
+    print("Satellites loaded:")
+    for sat in satellites:
+        print(" -", sat.name)
     print(f"✔ Total satellites loaded: {len(satellites)}\n")
 
     # ------------------------------------------
     # Step 3: Collision prediction
     # ------------------------------------------
     print("[3/4] Checking for close approaches...")
-    collision_checker.check_collisions(satellites, threshold_km=10)  # You can adjust this threshold
+    collision_checker.check_collisions(satellites, threshold_km=10)
     print("✔ Collision analysis complete.\n")
 
     # ------------------------------------------
     # Step 4: Visualization (2D + 3D)
     # ------------------------------------------
     print("[4/4] Visualizing satellite orbits...")
-    # 2D animation (matplotlib)
     visualizer.plot_animated_positions(satellites)
-    
-    # 3D orbit plot (pyvista)
     orbit_plotter.plot_satellite_orbits_3d(satellites)
     print("✔ Visualizations complete.")
 

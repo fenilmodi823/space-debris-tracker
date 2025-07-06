@@ -41,7 +41,7 @@ def load_tles(file_path="data/latest_tle.txt"):
         print(f"Loaded {len(satellites)} satellites from TLE file.")
 
     except FileNotFoundError:
-        print(f"❌ TLE file '{file_path}' not found.")
+        print(f"TLE file '{file_path}' not found.")
 
     return satellites
 

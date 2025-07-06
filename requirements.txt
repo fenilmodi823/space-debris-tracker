@@ -1,2 +1,22 @@
+# Core orbital mechanics
 skyfield
+
+# Data fetching
+requests
+
+# Math & scientific computing
+numpy
+
+# Visualization
+matplotlib
+cartopy
+pyvista
+
+# Animation
+matplotlib-animation  # (built-in, for clarity; part of matplotlib)
+
+# Optional CLI tools / dev utilities
 pytest
+
+# If using image-based 3D textures later (optional)
+Pillow

@@ -2,54 +2,125 @@ import pyvista as pv
 import numpy as np
 from skyfield.api import load, wgs84
 from datetime import datetime
+from utils import get_satellite_color, is_famous_satellite
+import os
 
-# Custom render settings for well-known satellites
+# ---------------------------
+# Configuration
+# ---------------------------
+EARTH_RADIUS_KM = 6371.0
+SECONDS_PER_DAY = 86400
+
 FAMOUS_SAT_COLORS = {
     "ISS (ZARYA)": "white",
     "HUBBLE SPACE TELESCOPE": "violet",
     "LANDSAT 8": "green",
     "SENTINEL-2A": "cyan",
     "STARLINK-30000": "blue"
-}
+}   
 
-def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
+ALTITUDE_RINGS = [
+    (2000, 'limegreen', 0.25, "LEO"),
+    (20000, 'gold', 0.2, "MEO"),
+    (35786, 'skyblue', 0.2, "GEO")
+]
+
+def classify_orbit(alt_km):
+    if alt_km < 2000:
+        return "LEO", "limegreen"
+    elif alt_km < 35786:
+        return "MEO", "gold"
+    else:
+        return "GEO", "skyblue"
+
+# ---------------------------
+# Main Visualization Function
+# ---------------------------
+def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60, max_satellites=10):
     """
-    Plots Earth, satellite positions, orbital trails, labels, and click interactivity using PyVista.
+    Render Earth, satellite orbits, and info overlays in 3D using PyVista.
     """
     ts = load.timescale()
     t0 = ts.now()
-    # Convert step_seconds from seconds to days when adding to the Skyfield Time
-    # object, otherwise each step would advance by that many **days**.
-    seconds_per_day = 86400
-    time_steps = [t0 + (i * step_seconds) / seconds_per_day
-                  for i in range((minutes * 60) // step_seconds)]
+    time_steps = [t0 + (i * step_seconds) / SECONDS_PER_DAY for i in range((minutes * 60) // step_seconds)]
 
     plotter = pv.Plotter(window_size=(1000, 700))
     plotter.set_background("black")
 
-    # Earth
-    earth_radius = 6371.0  # km
-    earth = pv.Sphere(radius=earth_radius, theta_resolution=60, phi_resolution=60)
-    plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')    
+    shells = _add_earth_and_rings(plotter)
+    _add_satellites_and_trails(plotter, satellites[:max_satellites], ts, time_steps, shells)
+    plotter.add_axes()
+    plotter.show()
+    plotter.add_text(
+    "🛰 Controls:\n"
+    "R – Toggle orbital rings\n"
+    "Click – Show satellite info\n"
+    "ESC – Exit visualization",
+    position='lower_left',
+    font_size=10,
+    color='white',
+    shadow=True
+)
 
-    # Altitude rings
-    altitude_rings = [
-        (2000, 'limegreen', 0.25, "LEO"),
-        (20000, 'gold', 0.2, "MEO"),
-        (35786, 'skyblue', 0.2, "GEO")
-    ]
+# ---------------------------
+# Earth and Altitude Shells
+# ---------------------------
+def _add_earth_and_rings(plotter):
+    shell_actors = []
 
-    for alt, color, opacity, label in altitude_rings:
-        shell = pv.Sphere(radius=earth_radius + alt, theta_resolution=60, phi_resolution=60)
-        plotter.add_mesh(shell, color=color, opacity=opacity)
+    earth = pv.Sphere(radius=EARTH_RADIUS_KM, theta_resolution=60, phi_resolution=60)
+    plotter.add_mesh(earth, color='blue', opacity=0.5, name='Earth')
 
-    # Satellites and trails
-    for sat in satellites[:10]:  # Limit to avoid lag
-        trail = []
+    for alt, color, opacity, label in ALTITUDE_RINGS:
+        shell = pv.Sphere(radius=EARTH_RADIUS_KM + alt, theta_resolution=60, phi_resolution=60)
+        actor = plotter.add_mesh(shell, color=color, opacity=opacity, name=label)
+        shell_actors.append(actor)
+
+    return shell_actors
+
+# ---------------------------
+# Satellites and Trails
+# ---------------------------
+def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
+    info_text_actor = None  # To track overlay text
+
+    def on_pick(picked_point):
+        nonlocal info_text_actor
+        for sat in satellites:
+            try:
+                geo = sat.at(ts.now())
+                pos = geo.position.km
+                dist = np.linalg.norm(np.array(pos) - picked_point)
+                if dist < 300:
+                    subpoint = wgs84.subpoint(geo)
+
+                    # Estimate velocity
+                    t1 = ts.now()
+                    t2 = t1 + 1
+                    r1 = np.array(sat.at(t1).position.km)
+                    r2 = np.array(sat.at(t2).position.km)
+                    velocity = np.linalg.norm(r2 - r1)
+
+                    info = (
+                        f"{sat.name}\n"
+                        f"Lat      : {subpoint.latitude.degrees:.2f}°\n"
+                        f"Lon      : {subpoint.longitude.degrees:.2f}°\n"
+                        f"Alt      : {geo.distance().km:.2f} km\n"
+                        f"Velocity : {velocity:.2f} km/s\n"
+                        f"Time     : {datetime.utcnow().strftime('%H:%M:%S UTC')}"
+                    )
+
+                    if info_text_actor:
+                        plotter.remove_actor(info_text_actor)
+
+                    info_text_actor = plotter.add_text(info, position='upper_left', font_size=10, color='white')
+                    break
+            except:
+                continue
+
+    for sat in satellites:
         try:
-            for t in time_steps:
-                pos = sat.at(t).position.km
-                trail.append(pos)
+            trail = [sat.at(t).position.km for t in time_steps]
         except:
             continue
 
@@ -59,20 +130,49 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
         trail = np.array(trail)
         x, y, z = trail[-1]
         label_pos = (x, y, z + 300)
+        # Auto-focus camera on ISS
+        if "ISS" in sat.name.upper():
+            plotter.camera_position = 'xy'
+            plotter.set_focus([x, y, z])
+            plotter.set_position([x + 3000, y + 3000, z + 1500])
+            plotter.camera.zoom(1.2)
+            plotter.camera.azimuth += 45  # rotate view slightly
 
-        # Style: famous or default
-        sat_name_upper = sat.name.upper()
-        color = FAMOUS_SAT_COLORS.get(sat_name_upper, 'red')
-        radius = 250 if sat_name_upper in FAMOUS_SAT_COLORS else 150
-        trail_color = color if sat_name_upper in FAMOUS_SAT_COLORS else 'yellow'
 
-        # Satellite sphere
-        plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=radius), color=color)
+        name_upper = sat.name.upper()
+        alt_km = np.linalg.norm([x, y, z]) - EARTH_RADIUS_KM
+        orbit_type, trail_color = classify_orbit(alt_km)
 
-        # Satellite label
-        plotter.add_point_labels(
+        # Use white or special color for famous, else by orbit
+        color = FAMOUS_SAT_COLORS.get(name_upper, trail_color)
+        radius = 250 if is_famous_satellite(sat.name) else 150
+
+        # Render ISS with 3D model, others as spheres
+        if "ISS" in sat.name.upper():
+            try:
+                model_path = os.path.join("models", "iss.obj")
+                iss_mesh = pv.read(model_path)
+
+                if iss_mesh.n_points == 0:
+                    raise ValueError("Empty ISS model mesh.")
+
+                iss_mesh.translate([x, y, z], inplace=True)
+                iss_mesh.scale([50, 50, 50], inplace=True)
+                plotter.add_mesh(iss_mesh, color='white')  # Apply color manually
+                print("✅ ISS 3D model loaded successfully.")
+
+            except Exception as e:
+                print(f"⚠ Could not load ISS model: {e}")
+                plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=radius), color=color)
+
+            else:
+                plotter.add_mesh(pv.Sphere(center=(x, y, z), radius=radius), color=color)
+
+
+            # Add label with orbit type
+            plotter.add_point_labels(
             np.array([label_pos]),
-            [sat.name],
+            [f"{sat.name} ({orbit_type})"],
             font_size=12,
             text_color='white',
             point_color=color,
@@ -81,51 +181,15 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60):
             render_points_as_spheres=True
         )
 
-        # Orbital trail
-        line = pv.Spline(trail, 1000)
-        plotter.add_mesh(line, color=trail_color, line_width=2)
 
-        # === Overlay info panel on click ===
-        info_text_actor = None  # To keep track of previous text
+        # Add trail
+        orbit_line = pv.Spline(trail, 1000)
+        plotter.add_mesh(orbit_line, color=trail_color, line_width=2)
 
-        def on_pick(picked_point):
-            nonlocal info_text_actor  # So we can modify the outer variable
-            for sat in satellites:
-                try:
-                    geo = sat.at(ts.now())
-                    pos = geo.position.km
-                    dist = np.linalg.norm(np.array(pos) - picked_point)
-                    if dist < 300:
-                        subpoint = wgs84.subpoint(geo)
-
-                        # Estimate velocity (simple 2-point calc)
-                        t1 = ts.now()
-                        t2 = t1 + 1  # 1 second later
-                        r1 = np.array(sat.at(t1).position.km)
-                        r2 = np.array(sat.at(t2).position.km)
-                        velocity = np.linalg.norm(r2 - r1)
-
-                        # Info to display
-                        info = (
-                            f"📡 {sat.name}\n"
-                            f"Lat      : {subpoint.latitude.degrees:.2f}°\n"
-                            f"Lon      : {subpoint.longitude.degrees:.2f}°\n"
-                            f"Alt      : {geo.distance().km:.2f} km\n"
-                            f"Velocity : {velocity:.2f} km/s\n"
-                            f"Time     : {datetime.utcnow().strftime('%H:%M:%S UTC')}"
-                        )
-
-                        # Remove previous text if exists
-                        if info_text_actor:
-                            plotter.remove_actor(info_text_actor)
-
-                        # Add new info text to the top left
-                        info_text_actor = plotter.add_text(info, position='upper_left', font_size=10, color='white')
-                        break
-                except:
-                    continue
-
-    # Enable click picking
     plotter.enable_point_picking(callback=on_pick, show_message=True, use_mesh=True)
-    plotter.add_axes()
-    plotter.show()
+
+    def toggle_shells():
+        for actor in shells:
+            actor.SetVisibility(not actor.GetVisibility())
+
+    plotter.add_key_event('r', toggle_shells)
