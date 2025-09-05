@@ -15,6 +15,12 @@ FAMOUS_SAT_URLS = {
     "STARLINK-30000": "https://celestrak.org/NORAD/elements/starlink.txt",
 }
 
+def _attach_tle_metadata(sat: EarthSatellite, line1: str, line2: str):
+    """Attach raw TLE lines so the ML code in main.py can parse features."""
+    setattr(sat, "line1", line1)
+    setattr(sat, "line2", line2)
+    return sat
+
 # --------------------------------------------------------------------
 # Load general satellite TLEs from local file
 # --------------------------------------------------------------------
@@ -26,17 +32,30 @@ def load_tles(file_path="data/latest_tle.txt"):
         with open(file_path, "r") as file:
             lines = [line.strip() for line in file if line.strip()]
 
-        for i in range(0, len(lines) - 2, 3):
+        # Support both 3-line (name + 2 lines) and flat sequences
+        i = 0
+        while i <= len(lines) - 2:
             name = lines[i]
-            line1 = lines[i + 1]
-            line2 = lines[i + 2]
+            # Detect 3-line pattern (name, L1, L2)
+            if i + 2 < len(lines) and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+                line1 = lines[i + 1]
+                line2 = lines[i + 2]
+                i += 3
+            # Or detect 2-line pattern (L1, L2) with unknown name
+            elif lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
+                line1 = lines[i]
+                line2 = lines[i + 1]
+                name = "UNKNOWN"
+                i += 2
+            else:
+                i += 1
+                continue
 
-            if line1 and line2:
-                try:
-                    sat = EarthSatellite(line1, line2, name, ts)
-                    satellites.append(sat)
-                except ValueError:
-                    continue  # Skip invalid TLE entries
+            try:
+                sat = EarthSatellite(line1, line2, name, ts)
+                satellites.append(_attach_tle_metadata(sat, line1, line2))
+            except ValueError:
+                continue  # Skip invalid TLE entries
 
         print(f"Loaded {len(satellites)} satellites from TLE file.")
 
@@ -54,8 +73,9 @@ def load_famous_sats():
 
     for name, url in FAMOUS_SAT_URLS.items():
         try:
-            response = requests.get(url)
-            lines = response.text.strip().splitlines()
+            resp = requests.get(url, timeout=30)
+            resp.raise_for_status()
+            lines = resp.text.strip().splitlines()
 
             # Find satellite entry
             for i in range(len(lines) - 2):
@@ -63,8 +83,10 @@ def load_famous_sats():
                     sat_name = lines[i].strip()
                     line1 = lines[i + 1].strip()
                     line2 = lines[i + 2].strip()
+                    if not (line1.startswith("1 ") and line2.startswith("2 ")):
+                        continue
                     sat = EarthSatellite(line1, line2, sat_name, ts)
-                    sats.append(sat)
+                    sats.append(_attach_tle_metadata(sat, line1, line2))
                     break
 
         except Exception as e:
@@ -83,15 +105,16 @@ def load_famous_sats_from_file(tle_path="data/famous_tles/famous.txt"):
     try:
         with open(tle_path, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
-            for i in range(0, len(lines) - 2, 3):
-                name = lines[i]
-                line1 = lines[i + 1]
-                line2 = lines[i + 2]
-                try:
-                    sat = EarthSatellite(line1, line2, name, ts)
-                    sats.append(sat)
-                except ValueError:
-                    continue
+
+        for i in range(0, len(lines) - 2, 3):
+            name = lines[i]
+            line1 = lines[i + 1]
+            line2 = lines[i + 2]
+            try:
+                sat = EarthSatellite(line1, line2, name, ts)
+                sats.append(_attach_tle_metadata(sat, line1, line2))
+            except ValueError:
+                continue
 
         print(f"Loaded {len(sats)} famous satellites from fallback file.")
 
