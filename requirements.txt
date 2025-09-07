@@ -1,25 +1,25 @@
 # Core orbital mechanics
-skyfield>=1.45
+skyfield
 
 # Data fetching
-requests>=2.31
+requests
 
 # Math & scientific computing
-numpy>=1.26
-pandas>=2.1
+numpy
+pandas
 
 # Machine Learning
-scikit-learn>=1.4
-imbalanced-learn>=0.12
-joblib>=1.3
+scikit-learn
+imbalanced-learn
+joblib
 
 # Visualization
-matplotlib>=3.8
-cartopy>=0.22
-pyvista>=0.43
+matplotlib
+cartopy
+pyvista
 
 # Optional CLI tools / dev utilities
-pytest>=7.4
+pytest
 
 # If using image-based 3D textures later (optional)
-Pillow>=10.0
+Pillow
