@@ -1,51 +1,82 @@
 # orbit_predictor.py
 # Loads general & famous satellites from TLEs (online & offline) and prints positions
 
-from skyfield.api import EarthSatellite, load, wgs84
+from __future__ import annotations
+
+import urllib.parse
 import requests
+from skyfield.api import EarthSatellite, load, wgs84
 
 # --------------------------------------------------------------------
-# Online real-time TLE sources for famous satellites
+# Famous satellites (by NAME as listed in CelesTrak)
+# You can edit/extend this list freely.
 # --------------------------------------------------------------------
-FAMOUS_SAT_URLS = {
-    "ISS (ZARYA)": "https://celestrak.org/NORAD/elements/stations.txt",
-    "HUBBLE SPACE TELESCOPE": "https://celestrak.org/NORAD/elements/science.txt",
-    "LANDSAT 8": "https://celestrak.org/NORAD/elements/earth-resources.txt",
-    "SENTINEL-2A": "https://celestrak.org/NORAD/elements/earth-resources.txt",
-    "STARLINK-30000": "https://celestrak.org/NORAD/elements/starlink.txt",
-}
+FAMOUS_SAT_NAMES = [
+    "ISS (ZARYA)",
+    "HUBBLE SPACE TELESCOPE",
+    "LANDSAT 8",
+    "SENTINEL-2A",
+    "STARLINK-1130",  # pick a real Starlink (example)
+]
 
-def _attach_tle_metadata(sat: EarthSatellite, line1: str, line2: str):
+CELESTRAK_GP_BASE = "https://celestrak.org/NORAD/elements/gp.php"
+
+
+def _attach_tle_metadata(sat: EarthSatellite, line1: str, line2: str) -> EarthSatellite:
     """Attach raw TLE lines so the ML code in main.py can parse features."""
     setattr(sat, "line1", line1)
     setattr(sat, "line2", line2)
     return sat
 
+
+def _fetch_tle_by_name(name: str, timeout: int = 30) -> tuple[str, str] | None:
+    """
+    Fetch a specific satellite's TLE by NAME using CelesTrak gp.php.
+    Returns (line1, line2) or None if not found/invalid.
+    """
+    url = f"{CELESTRAK_GP_BASE}?NAME={urllib.parse.quote(name)}&FORMAT=tle"
+    try:
+        r = requests.get(url, timeout=timeout)
+        r.raise_for_status()
+        lines = [ln.strip() for ln in r.text.splitlines() if ln.strip()]
+        # Expect sequences of 3 lines: NAME, L1, L2 (there can be multiple entries)
+        for i in range(len(lines) - 2):
+            if lines[i].upper() == name.upper() and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+                return lines[i + 1], lines[i + 2]
+        return None
+    except Exception:
+        return None
+
+
 # --------------------------------------------------------------------
 # Load general satellite TLEs from local file
 # --------------------------------------------------------------------
-def load_tles(file_path="data/latest_tle.txt"):
+def load_tles(file_path: str = "data/latest_tle.txt"):
+    """
+    Load satellites from a local TLE file. Supports:
+      - 3-line format (NAME, L1, L2)
+      - 2-line format (L1, L2) with UNKNOWN name
+    """
     satellites = []
     ts = load.timescale()
 
     try:
-        with open(file_path, "r") as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             lines = [line.strip() for line in file if line.strip()]
 
-        # Support both 3-line (name + 2 lines) and flat sequences
         i = 0
         while i <= len(lines) - 2:
-            name = lines[i]
-            # Detect 3-line pattern (name, L1, L2)
+            # 3-line pattern: NAME, line1, line2
             if i + 2 < len(lines) and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+                name = lines[i]
                 line1 = lines[i + 1]
                 line2 = lines[i + 2]
                 i += 3
-            # Or detect 2-line pattern (L1, L2) with unknown name
+            # 2-line pattern: line1, line2 (no name available)
             elif lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
+                name = "UNKNOWN"
                 line1 = lines[i]
                 line2 = lines[i + 1]
-                name = "UNKNOWN"
                 i += 2
             else:
                 i += 1
@@ -54,8 +85,9 @@ def load_tles(file_path="data/latest_tle.txt"):
             try:
                 sat = EarthSatellite(line1, line2, name, ts)
                 satellites.append(_attach_tle_metadata(sat, line1, line2))
-            except ValueError:
-                continue  # Skip invalid TLE entries
+            except Exception:
+                # Skip invalid TLEs but continue parsing
+                continue
 
         print(f"Loaded {len(satellites)} satellites from TLE file.")
 
@@ -64,46 +96,51 @@ def load_tles(file_path="data/latest_tle.txt"):
 
     return satellites
 
+
 # --------------------------------------------------------------------
-# Load famous satellites from online sources (real-time preferred)
+# Load famous satellites from online sources (preferred)
+# Falls back to local file if online fetch yields none
 # --------------------------------------------------------------------
-def load_famous_sats():
+def load_famous_sats(names: list[str] | None = None, fallback_path: str = "data/famous_tles/famous.txt"):
+    """
+    Try to load a curated set of famous satellites by NAME from CelesTrak (online).
+    If none could be loaded, fall back to local file.
+    """
     ts = load.timescale()
     sats = []
+    names = names or FAMOUS_SAT_NAMES
 
-    for name, url in FAMOUS_SAT_URLS.items():
+    # Online fetch by NAME
+    for name in names:
+        pair = _fetch_tle_by_name(name)
+        if pair is None:
+            print(f"Failed to fetch TLE for {name}")
+            continue
+        line1, line2 = pair
         try:
-            resp = requests.get(url, timeout=30)
-            resp.raise_for_status()
-            lines = resp.text.strip().splitlines()
-
-            # Find satellite entry
-            for i in range(len(lines) - 2):
-                if name.upper() in lines[i].upper():
-                    sat_name = lines[i].strip()
-                    line1 = lines[i + 1].strip()
-                    line2 = lines[i + 2].strip()
-                    if not (line1.startswith("1 ") and line2.startswith("2 ")):
-                        continue
-                    sat = EarthSatellite(line1, line2, sat_name, ts)
-                    sats.append(_attach_tle_metadata(sat, line1, line2))
-                    break
-
+            sat = EarthSatellite(line1, line2, name, ts)
+            sats.append(_attach_tle_metadata(sat, line1, line2))
         except Exception as e:
-            print(f"Failed to fetch TLE for {name}: {e}")
+            print(f"Invalid TLE for {name}: {e}")
 
-    print(f"Loaded {len(sats)} famous satellites from online sources.")
-    return sats
+    if sats:
+        print(f"Loaded {len(sats)} famous satellites from online sources.")
+        return sats
+
+    # Fallback to local file
+    print("No famous satellites loaded online; trying local fallback...")
+    return load_famous_sats_from_file(fallback_path)
+
 
 # --------------------------------------------------------------------
 # Fallback: Load famous satellites from local file
 # --------------------------------------------------------------------
-def load_famous_sats_from_file(tle_path="data/famous_tles/famous.txt"):
-    sats = []
+def load_famous_sats_from_file(tle_path: str = "data/famous_tles/famous.txt"):
     ts = load.timescale()
+    sats = []
 
     try:
-        with open(tle_path, "r") as f:
+        with open(tle_path, "r", encoding="utf-8") as f:
             lines = [line.strip() for line in f if line.strip()]
 
         for i in range(0, len(lines) - 2, 3):
@@ -113,7 +150,7 @@ def load_famous_sats_from_file(tle_path="data/famous_tles/famous.txt"):
             try:
                 sat = EarthSatellite(line1, line2, name, ts)
                 sats.append(_attach_tle_metadata(sat, line1, line2))
-            except ValueError:
+            except Exception:
                 continue
 
         print(f"Loaded {len(sats)} famous satellites from fallback file.")
@@ -122,6 +159,7 @@ def load_famous_sats_from_file(tle_path="data/famous_tles/famous.txt"):
         print(f"Famous TLE file '{tle_path}' not found.")
 
     return sats
+
 
 # --------------------------------------------------------------------
 # Quick print of satellite lat/lon positions
@@ -135,15 +173,13 @@ def print_positions(satellites):
         try:
             geocentric = sat.at(t)
             subpoint = wgs84.subpoint(geocentric)
-
             lat = subpoint.latitude.degrees
             lon = subpoint.longitude.degrees
 
             if not (lat != lat or lon != lon):  # Skip NaN
                 print(f"{sat.name}: lat={lat:.2f}, lon={lon:.2f}")
                 count += 1
-
-            if count >= 10:
-                break
+                if count >= 10:
+                    break
         except Exception:
             continue

@@ -1,6 +1,6 @@
 # === Space Debris Tracker: Main Script ===
-# This script orchestrates TLE fetching, satellite loading,
-# collision checking, and visualization (2D & 3D).
+# Orchestrates TLE fetching, satellite loading, ML annotation,
+# collision checking, and visualization (2D live & 3D).
 
 import os
 import re
@@ -13,6 +13,13 @@ import visualizer
 import collision_checker
 import orbit_plotter
 from orbit_predictor import load_famous_sats
+
+# --------------------------
+# Tunables
+# --------------------------
+COLLISION_MAX = 60    # cap pairwise collision check set size
+PLOT3D_MAX    = 120   # cap for 3D plotting
+LIVE2D_MAX    = 100   # cap for live 2D animation
 
 # --------------------------
 # ML: load once at startup
@@ -89,7 +96,6 @@ def classify_and_color(props: dict):
 
     return pred, prob, TYPE_COLOR.get(pred, TYPE_COLOR["Unknown"])
 
-# Attempt to extract features from a satellite object
 def extract_features_from_sat(sat):
     """
     Tries attributes first (inc_deg/ecc/mm_rev_day/bstar).
@@ -165,22 +171,31 @@ def main():
     print("✔ TLE data saved to data/latest_tle.txt\n")
 
     # ------------------------------------------
-    # Step 2: Load famous satellites only
+    # Step 2: Load satellites (famous + many from file)
     # ------------------------------------------
     print("[2/4] Loading famous satellites from Celestrak...")
-    satellites = load_famous_sats()
+    famous = load_famous_sats()
+
+    # Load a larger batch from the freshly saved file
+    general = orbit_predictor.load_tles("data/latest_tle.txt")
+
+    # Merge and dedupe by name (simple, effective)
+    sat_by_name = {getattr(s, "name", "UNKNOWN"): s for s in (famous + general)}
+    satellites = list(sat_by_name.values())
 
     if not satellites:
         print("No satellites loaded. Check TLE fetch or fallback.")
         return
 
     print("Satellites loaded:")
-    for sat in satellites:
+    for sat in satellites[:20]:
         print(" -", getattr(sat, "name", "UNKNOWN"))
+    if len(satellites) > 20:
+        print(f" ... and {len(satellites) - 20} more")
     print(f"✔ Total satellites loaded: {len(satellites)}\n")
 
     # ------------------------------------------
-    # (NEW) Step 2.5: Classify & annotate with ML
+    # Step 2.5: Classify & annotate with ML
     # ------------------------------------------
     if CLF:
         annotate_satellites_with_ml(satellites)
@@ -188,20 +203,29 @@ def main():
         print("[ML] Model not available; skipping classification.\n")
 
     # ------------------------------------------
-    # Step 3: Collision prediction
+    # Step 3: Collision prediction (cap set size)
     # ------------------------------------------
     print("[3/4] Checking for close approaches...")
-    collision_checker.check_collisions(satellites, threshold_km=10)
+    if len(satellites) >= 2:
+        subset = satellites[:COLLISION_MAX]
+        if len(satellites) > COLLISION_MAX:
+            print(f"[i] Using first {COLLISION_MAX} satellites for collision check (cap).")
+        collision_checker.check_collisions(subset, threshold_km=10)
+    else:
+        print("Skipping collision check (need at least 2 satellites).")
     print("✔ Collision analysis complete.\n")
 
     # ------------------------------------------
-    # Step 4: Visualization (2D + 3D)
+    # Step 4: Visualization (2D live + 3D)
     # ------------------------------------------
     print("[4/4] Visualizing satellite orbits...")
-    # NOTE: At this point each `sat` has sat.pred_type / sat.pred_conf / sat.pred_color
-    # In the next step we'll update orbit_plotter/visualizer to use these colors.
-    visualizer.plot_animated_positions(satellites)
-    orbit_plotter.plot_satellite_orbits_3d(satellites)
+
+    # 2D: Live animation until window close (show many satellites)
+    visualizer.plot_animated_positions_live(satellites, interval_ms=200, max_sats=LIVE2D_MAX)
+
+    # 3D: Use a capped subset for smooth interaction
+    orbit_plotter.plot_satellite_orbits_3d(satellites[:PLOT3D_MAX])
+
     print("✔ Visualizations complete.")
 
 # Run the program
