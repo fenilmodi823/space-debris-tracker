@@ -37,33 +37,63 @@ Originally designed as a final-year engineering capstone, the project also serve
 
 ## 📁 Project Structure
 
-space-debris-tracker/
-│
-├── backend/
-│ ├── main.py # Entry point and pipeline runner
-│ ├── tle_fetcher.py # Downloads latest TLE data
-│ ├── orbit_predictor.py # Loads satellites (general + famous)
-│ ├── build_dataset.py # Creates ML dataset from TLE + SATCAT
-│ ├── train_model.py # Trains classifier (Payload / R/B / Debris)
-│ ├── check_dataset.py # Diagnostics for training CSV
-│ ├── visualizer.py # 2D maps (static + animated)
-│ ├── orbit_plotter.py # 3D orbital rendering with ML colors
-│ ├── collision_checker.py # Detects close approaches
-│ ├── utils.py # Shared helper functions
-│ └── config.py # Centralized configuration
-│
-├── data/
-│ ├── latest_tle.txt # Fresh TLE data from CelesTrak
-│ ├── tle_features_all.csv # Raw ML features
-│ └── tle_features_labeled.csv # Cleaned dataset with labels
-│
-├── ml_models/
-│ └── object_classifier.joblib # Trained ML model
-│
-├── docs/ # Flowcharts, diagrams, final report
-│
-├── requirements.txt # Python dependencies
-└── README.md
+Space Debris Tracker/
+|-- LICENSE
+|-- README.md
+|-- requirements.txt
+|-- assets/
+|   |-- models/
+|   |   |-- earth/
+|   |   |   |-- earth.glb
+|   |   |   |-- earth.mtl
+|   |   |   \-- earth.obj
+|   |   \-- satellites/
+|   |       |-- Hubble Space Telescope (A).glb
+|   |       \-- International Space Station (ISS) (A).glb
+|   \-- textures/
+|       |-- clouds.png
+|       \-- earth_day.jpg
+|-- backend/
+|   |-- build_dataset.py
+|   |-- check_dataset.py
+|   |-- collision_checker.py
+|   |-- config.py
+|   |-- main.py
+|   |-- orbit_plotter.py
+|   |-- orbit_predictor.py
+|   |-- tle_fetcher.py
+|   |-- train_model.py
+|   |-- utils.py
+|   |-- visualizer.py
+|   |-- __init__.py
+|   \-- __pycache__/
+|       |-- collision_checker.cpython-313.pyc
+|       |-- orbit_plotter.cpython-313.pyc
+|       |-- orbit_predictor.cpython-313.pyc
+|       |-- poliastro.cpython-313.pyc
+|       |-- tle_fetcher.cpython-313.pyc
+|       |-- utils.cpython-313.pyc
+|       |-- visualizer.cpython-313.pyc
+|       \-- __init__.cpython-313.pyc
+|-- data/
+|   |-- latest_tle.txt
+|   |-- tle_features_all.csv
+|   |-- tle_features_labeled.csv
+|   \-- famous_tles/
+|       \-- famous.txt
+|-- docs/
+|-- kernels/
+|-- ml_models/
+|   \-- object_classifier.joblib
+|-- models/
+|   |-- iss.mtl
+|   \-- iss.obj
+|-- notebooks/
+|-- screenshots/
+\-- tests/
+    |-- sample.tle
+    |-- test_orbit_predictor.py
+    \-- test_time_steps.py
 
 ---
 
