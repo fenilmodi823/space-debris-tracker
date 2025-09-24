@@ -37,6 +37,7 @@ Originally designed as a final-year engineering capstone, the project also serve
 
 ## 📁 Project Structure
 
+```text
 Space Debris Tracker/
 |-- LICENSE
 |-- README.md
@@ -94,6 +95,7 @@ Space Debris Tracker/
     |-- sample.tle
     |-- test_orbit_predictor.py
     \-- test_time_steps.py
+```
 
 ---
 
