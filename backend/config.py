@@ -49,3 +49,32 @@ COLLISION_THRESHOLD_KM = 10          # Danger threshold in km
 # 🧭 Runtime Settings
 # ============================================================
 VERBOSE_MODE = True                  # Enable detailed terminal output
+
+# --- Added: NASA/CelesTrak configuration (Hybrid Approach: Step 1) ---
+import os
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except Exception:
+    # dotenv optional; code still runs, but .env won't be loaded automatically
+    pass
+
+NASA_API_KEY = os.getenv("NASA_API_KEY") or "DEMO_KEY"
+
+CELESTRAK_TLE_URL = os.getenv(
+    "CELESTRAK_TLE_URL",
+    "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle",
+)
+DONKI_BASE = os.getenv("DONKI_BASE", "https://api.nasa.gov/DONKI")
+NEO_BASE   = os.getenv("NEO_BASE",   "https://api.nasa.gov/neo/rest/v1")
+
+def get_config_summary() -> str:
+    key_label = "DEMO_KEY" if NASA_API_KEY == "DEMO_KEY" else "SET (hidden)"
+    return (
+        "[Config]\n"
+        f"  NASA_API_KEY: {key_label}\n"
+        f"  CELESTRAK_TLE_URL: {CELESTRAK_TLE_URL}\n"
+        f"  DONKI_BASE: {DONKI_BASE}\n"
+        f"  NEO_BASE: {NEO_BASE}\n"
+    )
+# --- End added section ---

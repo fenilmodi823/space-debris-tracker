@@ -7,12 +7,13 @@ import re
 import joblib
 import numpy as np
 
-import tle_fetcher
-import orbit_predictor
-import visualizer
-import collision_checker
-import orbit_plotter
-from orbit_predictor import load_famous_sats
+from backend import tle_fetcher
+from backend import orbit_predictor
+from backend import visualizer
+from backend import collision_checker
+from backend import orbit_plotter
+from backend.orbit_predictor import load_famous_sats
+
 
 # --------------------------
 # Tunables

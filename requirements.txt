@@ -23,3 +23,7 @@ pytest
 
 # If using image-based 3D textures later (optional)
 Pillow
+
+# Hybrid Approach – Step 1 (deps)
+requests
+python-dotenv

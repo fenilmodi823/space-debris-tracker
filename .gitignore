@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.env/
+.envrc
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+

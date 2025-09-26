@@ -7,7 +7,8 @@ import pyvista as pv
 from skyfield.api import load, wgs84
 
 # Prefer ML colors if available; keep these if used elsewhere
-from utils import is_famous_satellite
+from backend.utils import is_famous_satellite
+
 
 # Silence a noisy cartopy/pyproj warning seen during projections
 warnings.filterwarnings("ignore", message=".*converting a masked element to nan.*")

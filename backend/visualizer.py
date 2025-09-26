@@ -12,7 +12,8 @@ from matplotlib.animation import FuncAnimation
 from itertools import count
 
 from skyfield.api import load
-from utils import get_utc_timestamp, get_ml_satellite_color
+from backend.utils import get_utc_timestamp, get_ml_satellite_color
+
 
 # -----------------------------------------
 # Static Plot of Current Satellite Positions

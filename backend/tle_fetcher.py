@@ -1,50 +1,143 @@
-import requests
+"""
+TLE Fetcher with on-disk cache for CelesTrak.
+- Fetches TLEs for a group (e.g., 'active', 'stations', 'starlink', etc.)
+- Caches into data/tle/<group>/YYYYMMDD_HHMMSS.tle
+- Reuses cache if it's still fresh (configurable minutes)
+- Maintains data/latest_tle.txt as a convenience pointer
+"""
+
+from __future__ import annotations
+
 import os
-import sys
+import time
+import errno
+import shutil
+import requests
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Tuple, Optional
 
-# ----------------------------
-# Configuration
-# ----------------------------
-TLE_URL = "https://celestrak.org/NORAD/elements/gp.php"
-DEFAULT_GROUP = "last-30-days"  # broader, more useful for ML
-FORMAT = "tle"
+# Import config
+try:
+    from backend.config import CELESTRAK_TLE_URL
+except Exception:
+    # fallback if run as a standalone (not recommended)
+    from backend.config import CELESTRAK_TLE_URL# type: ignore
 
-# ----------------------------
-# TLE Fetching Function
-# ----------------------------
-def fetch_tle(save_path="data/latest_tle.txt", group=DEFAULT_GROUP):
-    """
-    Fetches the latest TLE data from CelesTrak for a given group and saves it to a local file.
+DATA_DIR = Path("data")
+TLE_ROOT = DATA_DIR / "tle"
+LATEST_TLE_POINTER = DATA_DIR / "latest_tle.txt"
 
-    Parameters:
-        save_path (str): The file path to save the TLE data.
-        group (str): The satellite group to fetch TLEs for. Default is 'last-30-days'.
-    """
-    url = f"{TLE_URL}?GROUP={group}&FORMAT={FORMAT}"
+DEFAULT_CACHE_MINUTES = 180  # 3 hours
 
-    print(f"[INFO] Fetching TLE data for group: {group}")
-    print(f"[INFO] Source: {url}")
-
+def _ensure_dir(path: Path) -> None:
     try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        tle_data = response.text.strip()  # normalize blank lines
+        path.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+def _list_cached(group: str) -> list[Path]:
+    d = TLE_ROOT / group
+    if not d.exists():
+        return []
+    return sorted([p for p in d.glob("*.tle") if p.is_file()])
 
-        # Save the file
-        with open(save_path, "w", encoding="utf-8") as file:
-            file.write(tle_data + "\n")
+def _is_fresh(file: Path, cache_minutes: int) -> bool:
+    if not file.exists():
+        return False
+    age = datetime.now() - datetime.fromtimestamp(file.stat().st_mtime)
+    return age <= timedelta(minutes=cache_minutes)
 
-        print(f"[✔] TLE data saved to {save_path}")
+def _validate_tle_text(text: str) -> None:
+    """
+    Basic sanity checks:
+    - Total lines should be a multiple of 3 (name, line1, line2).
+    - Line 1 should start with '1 ' and line 2 with '2 ' (for each triplet).
+    We don't do deep checksum validation here; keep it light.
+    """
+    lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
+    if len(lines) < 3 or len(lines) % 3 != 0:
+        raise ValueError("TLE content length is not a multiple of 3 lines.")
 
-    except requests.exceptions.RequestException as e:
-        print(f"[✖] Failed to fetch TLE data: {e}")
+    for i in range(0, len(lines), 3):
+        name, l1, l2 = lines[i], lines[i+1], lines[i+2]
+        if not (l1.startswith("1 ") and l2.startswith("2 ")):
+            raise ValueError(f"TLE lines malformed near object '{name[:40]}'.")
 
-# ----------------------------
-# CLI Execution
-# ----------------------------
+def _write_latest_pointer(target: Path) -> None:
+    _ensure_dir(DATA_DIR)
+    try:
+        with LATEST_TLE_POINTER.open("w", encoding="utf-8") as f:
+            f.write(str(target.resolve()))
+    except Exception:
+        # Non-fatal
+        pass
+
+def _count_objects_from_text(text: str) -> int:
+    # each object consumes 3 lines (name, L1, L2)
+    return len([ln for ln in text.splitlines() if ln.strip()]) // 3
+
+def fetch_tle(group: str = "active",
+              cache_minutes: int = DEFAULT_CACHE_MINUTES,
+              base_url: Optional[str] = None) -> Tuple[Path, str]:
+    """
+    Fetch TLEs for the given group with caching.
+    Returns (path_to_file, text_content).
+    """
+    base_url = base_url or CELESTRAK_TLE_URL
+
+    # Ensure cache directory
+    group_dir = TLE_ROOT / group
+    _ensure_dir(group_dir)
+
+    # 1) Reuse fresh cache if available
+    cached = _list_cached(group)
+    if cached:
+        latest = cached[-1]
+        if _is_fresh(latest, cache_minutes):
+            text = latest.read_text(encoding="utf-8", errors="ignore")
+            return latest, text
+
+    # 2) Fetch from CelesTrak
+    params = {}
+    # If the configured URL doesn't already include GROUP, use params.
+    # Our default CELESTRAK_TLE_URL includes ?GROUP=active&FORMAT=tle,
+    # so we only override 'active' when group differs.
+    if "GROUP=" not in (base_url or "") or group != "active":
+        # CelesTrak gp.php supports GROUP and FORMAT=tle
+        params["GROUP"] = group
+        params["FORMAT"] = "tle"
+
+    resp = requests.get(base_url, params=params or None, timeout=30)
+    resp.raise_for_status()
+    text = resp.text
+
+    # 3) Validate and store
+    _validate_tle_text(text)
+
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    out_path = group_dir / f"{ts}.tle"
+    out_path.write_text(text, encoding="utf-8")
+
+    # Update latest pointer (best-effort)
+    _write_latest_pointer(out_path)
+
+    return out_path, text
+
+def get_latest_tle_path(group: str = "active") -> Optional[Path]:
+    """Return the newest cached TLE path for a group, if any."""
+    cached = _list_cached(group)
+    return cached[-1] if cached else None
+
+def read_latest_tle(group: str = "active") -> Optional[str]:
+    """Return text content of the newest cached TLE for a group, if any."""
+    p = get_latest_tle_path(group)
+    if p and p.exists():
+        return p.read_text(encoding="utf-8", errors="ignore")
+    return None
+
 if __name__ == "__main__":
-    group = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_GROUP
-    fetch_tle(group=group)
+    # Quick manual test
+    path, txt = fetch_tle(group="active")
+    print(f"[TLE] saved: {path}  objects={_count_objects_from_text(txt)}")

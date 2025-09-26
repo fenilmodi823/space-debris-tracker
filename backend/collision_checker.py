@@ -1,7 +1,8 @@
 from itertools import combinations
 import numpy as np
 from skyfield.api import load
-from utils import calculate_distance_km
+from backend.utils import calculate_distance_km
+
 
 # ----------------------------------
 # Collision Detection
