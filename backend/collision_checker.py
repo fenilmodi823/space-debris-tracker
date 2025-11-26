@@ -1,7 +1,8 @@
 from itertools import combinations
 import numpy as np
-from skyfield.api import load
+from skyfield.api import load, EarthSatellite
 from backend.utils import calculate_distance_km
+from typing import List, Set, Optional, Tuple
 
 
 # ----------------------------------
@@ -9,30 +10,34 @@ from backend.utils import calculate_distance_km
 # ----------------------------------
 
 def check_collisions(
-    satellites,
-    threshold_km=10,
-    minutes=60,
-    step_seconds=30,
-    verbose=True,
-    include_types=None,      # e.g., {"Debris", "Rocket Body"}
-    min_confidence=0.0       # ignore sats with pred_conf < this
-):
+    satellites: List[EarthSatellite],
+    threshold_km: float = 10.0,
+    minutes: int = 60,
+    step_seconds: int = 30,
+    verbose: bool = True,
+    include_types: Optional[Set[str]] = None,      # e.g., {"Debris", "Rocket Body"}
+    min_confidence: float = 0.0       # ignore sats with pred_conf < this
+) -> List[str]:
     """
     Checks for potential close approaches between satellite pairs.
+    
+    This performs a pairwise check (O(N^2)) over a time grid.
+    For large N, this can be slow. Consider using spatial indexing (KDTree)
+    or SGP4 propagators with filters for production use.
 
     Parameters:
-        satellites (list[EarthSatellite]): satellites to analyze
-        threshold_km (float): distance threshold (km) for an alert
-        minutes (int): look-ahead time window
-        step_seconds (int): simulation step in seconds
-        verbose (bool): print progress and skips
-        include_types (set/list/None): if provided, only satellites whose
-            sat.pred_type is in this collection are considered
-        min_confidence (float): if sat.pred_conf exists and is below this,
-            the satellite is skipped
+        satellites: List of Skyfield EarthSatellite objects to analyze.
+        threshold_km: Distance threshold (km) for triggering an alert.
+        minutes: Look-ahead time window in minutes.
+        step_seconds: Simulation step size in seconds.
+        verbose: If True, prints progress and skipped satellites.
+        include_types: Optional set of strings. If provided, only satellites whose
+            `pred_type` attribute is in this set are considered.
+        min_confidence: If `pred_conf` attribute exists and is below this value,
+            the satellite is skipped.
 
     Returns:
-        list[str]: human-readable alert messages
+        List of human-readable alert strings describing close approaches.
     """
     ts = load.timescale()
     t0 = ts.now()
@@ -42,10 +47,10 @@ def check_collisions(
     time_steps = [t0 + i * step_days for i in range(n_steps)]
 
     # Optional ML-based filtering
-    def _ml_ok(sat):
+    def _ml_ok(sat: EarthSatellite) -> bool:
         if include_types:
             sat_type = getattr(sat, "pred_type", None)
-            if sat_type not in set(include_types):
+            if sat_type not in include_types:
                 return False
         if min_confidence > 0.0:
             conf = float(getattr(sat, "pred_conf", 1.0))
@@ -54,7 +59,7 @@ def check_collisions(
         return True
 
     # Build usable satellites and precompute tracks
-    usable = []
+    usable: List[Tuple[EarthSatellite, List[np.ndarray]]] = []
     for sat in satellites:
         if not _ml_ok(sat):
             if verbose:
@@ -63,6 +68,8 @@ def check_collisions(
             continue
 
         try:
+            # Pre-calculate position vectors for all time steps
+            # .position.km returns [x, y, z] in GCRS
             track = [np.array(sat.at(t).position.km) for t in time_steps]
             usable.append((sat, track))
         except Exception as e:
@@ -84,6 +91,8 @@ def check_collisions(
         # Find minimum separation over the time grid
         dmin = float("inf")
         imin = -1
+        
+        # Vectorized distance check would be faster, but keeping it simple/readable
         for i, (p1, p2) in enumerate(zip(track1, track2)):
             d = calculate_distance_km(p1, p2)
             if d < dmin:

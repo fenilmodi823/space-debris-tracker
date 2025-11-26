@@ -1,6 +1,7 @@
 import os
 import warnings
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pyvista as pv
@@ -8,7 +9,6 @@ from skyfield.api import load, wgs84
 
 # Prefer ML colors if available; keep these if used elsewhere
 from backend.utils import is_famous_satellite
-
 
 # Silence a noisy cartopy/pyproj warning seen during projections
 warnings.filterwarnings("ignore", message=".*converting a masked element to nan.*")
@@ -22,13 +22,13 @@ SECONDS_PER_DAY = 86400
 # Assets
 TEXTURES_DIR = os.path.join("assets", "textures")
 EARTH_DAY_TEX = os.path.join(TEXTURES_DIR, "earth_day.jpg")
-CLOUDS_TEX    = os.path.join(TEXTURES_DIR, "clouds.png")
+CLOUDS_TEX = os.path.join(TEXTURES_DIR, "clouds.png")
 
 MODELS_DIR = "models"
 
 # Map uppercase name -> (filepath, scale_factor)
 # Scale is a visual scale (km units in this scene) so sats are visible.
-SAT_MODELS = {
+SAT_MODELS: Dict[str, Tuple[str, float]] = {
     "ISS (ZARYA)": (os.path.join(MODELS_DIR, "iss.obj"), 40),
     "HUBBLE SPACE TELESCOPE": (os.path.join(MODELS_DIR, "hubble.obj"), 25),
     "LANDSAT 8": (os.path.join(MODELS_DIR, "landsat8.obj"), 18),
@@ -37,7 +37,7 @@ SAT_MODELS = {
 }
 
 # Preferred colors come from ML; these are only fallbacks
-FAMOUS_SAT_COLORS = {
+FAMOUS_SAT_COLORS: Dict[str, str] = {
     "ISS (ZARYA)": "white",
     "HUBBLE SPACE TELESCOPE": "violet",
     "LANDSAT 8": "green",
@@ -46,7 +46,7 @@ FAMOUS_SAT_COLORS = {
     "STARLINK-30000": "blue",
 }
 
-ALTITUDE_RINGS = [
+ALTITUDE_RINGS: List[Tuple[float, str, float, str]] = [
     (2000, "limegreen", 0.25, "LEO"),
     (20000, "gold", 0.2, "MEO"),
     (35786, "skyblue", 0.2, "GEO"),
@@ -55,7 +55,8 @@ ALTITUDE_RINGS = [
 # Map for a tiny on-screen legend
 ML_LEGEND_TEXT = "ML Colors:  Payload=Green   Rocket Body=Yellow   Debris=Red"
 
-def _prefer_ml_color(sat, orbit_color):
+
+def _prefer_ml_color(sat: Any, orbit_color: str) -> Any:
     """
     Color priority: ML prediction color > famous-sat color > orbit tier color.
     sat.pred_color may be a tuple (r, g, b) or a matplotlib-like color.
@@ -66,7 +67,8 @@ def _prefer_ml_color(sat, orbit_color):
     name_upper = getattr(sat, "name", "").upper()
     return FAMOUS_SAT_COLORS.get(name_upper, orbit_color)
 
-def classify_orbit(alt_km):
+
+def classify_orbit(alt_km: float) -> Tuple[str, str]:
     if alt_km < 2000:
         return "LEO", "limegreen"
     elif alt_km < 35786:
@@ -74,10 +76,11 @@ def classify_orbit(alt_km):
     else:
         return "GEO", "skyblue"
 
+
 # ---------------------------
 # Textures & Earth helpers
 # ---------------------------
-def _read_texture(path):
+def _read_texture(path: str) -> Optional[pv.Texture]:
     try:
         if os.path.exists(path):
             return pv.read_texture(path)
@@ -85,7 +88,8 @@ def _read_texture(path):
         pass
     return None
 
-def _add_textured_earth(plotter):
+
+def _add_textured_earth(plotter: pv.Plotter) -> None:
     """Add a textured Earth sphere and optional semi-transparent cloud layer."""
     # Earth sphere with proper UVs
     sphere = pv.Sphere(radius=EARTH_RADIUS_KM, theta_resolution=180, phi_resolution=180)
@@ -104,18 +108,20 @@ def _add_textured_earth(plotter):
         clouds.texture_map_to_sphere(inplace=True)
         plotter.add_mesh(clouds, texture=tex_clouds, opacity=0.35, name="Clouds")
 
-def _add_orbit_rings(plotter):
-    shell_actors = []
+
+def _add_orbit_rings(plotter: pv.Plotter) -> List[Any]:
+    shell_actors: List[Any] = []
     for alt, color, opacity, label in ALTITUDE_RINGS:
         shell = pv.Sphere(radius=EARTH_RADIUS_KM + alt, theta_resolution=60, phi_resolution=60)
         actor = plotter.add_mesh(shell, color=color, opacity=opacity, name=label)
         shell_actors.append(actor)
     return shell_actors
 
+
 # ---------------------------
 # Model loading
 # ---------------------------
-def _try_load_sat_model(name_upper):
+def _try_load_sat_model(name_upper: str) -> Optional[Tuple[Any, float]]:
     entry = SAT_MODELS.get(name_upper)
     if not entry:
         return None
@@ -130,10 +136,16 @@ def _try_load_sat_model(name_upper):
     except Exception:
         return None
 
+
 # ---------------------------
 # Main Visualization Function
 # ---------------------------
-def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60, max_satellites=10):
+def plot_satellite_orbits_3d(
+    satellites: List[Any],
+    minutes: int = 30,
+    step_seconds: int = 60,
+    max_satellites: int = 10,
+) -> None:
     """
     Render Earth, satellite orbits, and info overlays in 3D using PyVista.
     """
@@ -142,15 +154,15 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60, max_satell
         return
 
     # Clamp number of satellites to keep the scene readable
-    satellites = satellites[:max(1, int(max_satellites))]
+    satellites = satellites[: max(1, int(max_satellites))]
 
     ts = load.timescale()
     t0 = ts.now()
     n_steps = max(2, (minutes * 60) // max(1, int(step_seconds)))
     time_steps = [t0 + (i * step_seconds) / SECONDS_PER_DAY for i in range(n_steps)]
 
-    plotter = pv.Plotter(window_size=(1000, 700))
-    plotter.set_background("black")
+    plotter: pv.Plotter = pv.Plotter(window_size=[1000, 700])
+    plotter.set_background(color="black")  # type: ignore[call-arg]
 
     # Textured Earth + rings
     _add_textured_earth(plotter)
@@ -160,7 +172,7 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60, max_satell
     plotter.add_text(ML_LEGEND_TEXT, position="lower_right", font_size=10, color="white", shadow=True)
 
     _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells)
-    plotter.add_axes()
+    plotter.add_axes()  # type: ignore[call-arg]
 
     # Controls card
     plotter.add_text(
@@ -176,22 +188,31 @@ def plot_satellite_orbits_3d(satellites, minutes=30, step_seconds=60, max_satell
     )
 
     # Save a high-res screenshot with 'S'
-    def _save_screenshot():
+    def _save_screenshot() -> None:
         os.makedirs("screenshots", exist_ok=True)
         fn = os.path.join("screenshots", f"orbit_view_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.png")
+        # return_img=False avoids returning a numpy array; intended behavior here.
         plotter.screenshot(fn, return_img=False)
         print(f"[💾] Saved screenshot: {fn}")
 
-    plotter.add_key_event("s", _save_screenshot)
+    # Wrap callbacks in lambda so Pylance infers correct no-arg signature
+    plotter.add_key_event("s", _save_screenshot)  # type: ignore[arg-type]
     plotter.show()
+
 
 # ---------------------------
 # Satellites and Trails
 # ---------------------------
-def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
-    info_text_actor = None  # To track overlay text
+def _add_satellites_and_trails(
+    plotter: pv.Plotter,
+    satellites: List[Any],
+    ts: Any,
+    time_steps: List[Any],
+    shells: List[Any],
+) -> None:
+    info_text_actor: Optional[Any] = None  # To track overlay text
 
-    def on_pick(picked_point):
+    def on_pick(picked_point: np.ndarray) -> None:
         nonlocal info_text_actor
         for sat in satellites:
             try:
@@ -203,7 +224,7 @@ def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
 
                     # Estimate velocity (finite difference over 1s)
                     t1 = ts.now()
-                    t2 = t1 + 1
+                    t2 = t1 + 1  # +1 second (Skyfield supports adding seconds)
                     r1 = np.array(sat.at(t1).position.km)
                     r2 = np.array(sat.at(t2).position.km)
                     velocity = np.linalg.norm(r2 - r1)
@@ -230,6 +251,7 @@ def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
             except Exception:
                 continue
 
+    # Build trails and add meshes
     for sat in satellites:
         # Build trail in ECI km
         try:
@@ -239,16 +261,16 @@ def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
         if len(trail) < 2:
             continue
 
-        trail = np.array(trail)
-        x, y, z = trail[-1]
+        trail_arr = np.array(trail)
+        x, y, z = trail_arr[-1]
         label_pos = (x, y, z + 300)
 
         # Auto-focus camera on ISS once
         if "ISS" in sat.name.upper():
             try:
                 plotter.camera_position = "xy"
-                plotter.set_focus([x, y, z])
-                plotter.set_position([x + 3000, y + 3000, z + 1500])
+                plotter.camera.focus = [x, y, z]
+                plotter.camera.position = [x + 3000, y + 3000, z + 1500]
                 plotter.camera.zoom(1.2)
                 # Use VTK camera method for azimuth rotation
                 plotter.camera.Azimuth(45)
@@ -257,7 +279,7 @@ def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
 
         name_upper = sat.name.upper()
         alt_km = np.linalg.norm([x, y, z]) - EARTH_RADIUS_KM
-        orbit_type, orbit_color = classify_orbit(alt_km)
+        orbit_type, orbit_color = classify_orbit(float(alt_km))
 
         # ----- Color priority: ML > famous > orbit tier -----
         color = _prefer_ml_color(sat, orbit_color)
@@ -295,14 +317,19 @@ def _add_satellites_and_trails(plotter, satellites, ts, time_steps, shells):
         )
 
         # Trail: prefer ML color for visual consistency
-        orbit_line = pv.Spline(trail, 1000)
+        orbit_line = pv.Spline(trail_arr, 1000)
         plotter.add_mesh(orbit_line, color=color, line_width=2)
 
-    # PyVista deprecation fix: use_picker instead of use_mesh
-    plotter.enable_point_picking(callback=on_pick, show_message=True, use_picker=True)
+    # PyVista 0.43+ uses enable_point_picking; use_picker kw avoids older 'use_mesh' flag.
+    plotter.enable_point_picking(callback=on_pick, show_message=True, use_picker=True)  # type: ignore[arg-type]
 
-    def toggle_shells():
+    def toggle_shells() -> None:
         for actor in shells:
-            actor.SetVisibility(not actor.GetVisibility())
+            # VTK Actor methods; keep try/except to cover backend differences
+            try:
+                actor.SetVisibility(not actor.GetVisibility())
+            except Exception:
+                pass
 
-    plotter.add_key_event("r", toggle_shells)
+    # Wrap in lambda to make the callback explicitly no-arg for the type checker
+    plotter.add_key_event("r", toggle_shells)  # type: ignore[arg-type]

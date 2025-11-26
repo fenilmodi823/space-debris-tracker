@@ -1,21 +1,21 @@
-# utils.py
-# Reusable helper functions for the Space Debris Tracker
-
 import numpy as np
-from datetime import datetime
+import numpy.typing as npt
+from datetime import datetime, timezone
+from typing import Tuple, Union, List, Any, Sequence
 
 # ----------------------------------
 # Distance & Vector Calculations
 # ----------------------------------
 
-def calculate_distance_km(pos1, pos2):
-    """
-    Returns the Euclidean distance in kilometers between two 3D positions.
-    """
-    return np.linalg.norm(np.array(pos1) - np.array(pos2))
+VectorLike = Union[Sequence[float], npt.NDArray[np.floating]]
+
+def calculate_distance_km(pos1: VectorLike, pos2: VectorLike) -> float:
+    p1 = np.asarray(pos1, dtype=float)
+    p2 = np.asarray(pos2, dtype=float)
+    return float(np.linalg.norm(p1 - p2))
 
 
-def estimate_velocity_kms(pos1, pos2, delta_seconds=1):
+def estimate_velocity_kms(pos1: List[float], pos2: List[float], delta_seconds: float = 1.0) -> float:
     """
     Estimates velocity (in km/s) between two position vectors spaced by delta_seconds.
     """
@@ -25,11 +25,11 @@ def estimate_velocity_kms(pos1, pos2, delta_seconds=1):
 # Time Formatting
 # ----------------------------------
 
-def get_utc_timestamp():
+def get_utc_timestamp() -> str:
     """
     Returns current UTC timestamp in readable string format.
     """
-    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 # ----------------------------------
 # Satellite Visualization Colors
@@ -51,19 +51,19 @@ ML_TYPE_COLORS = {
     "Unknown": (0.80, 0.80, 0.80),     # grey fallback
 }
 
-def get_satellite_color(name, fallback="red"):
+def get_satellite_color(name: str, fallback: str = "red") -> str:
     """
     Returns a preset color for well-known satellites, or fallback color if not matched.
     """
     return FAMOUS_SAT_COLORS.get(name.upper(), fallback)
 
-def is_famous_satellite(name):
+def is_famous_satellite(name: str) -> bool:
     """
     Returns True if satellite is in the famous satellite list.
     """
     return name.upper() in FAMOUS_SAT_COLORS
 
-def get_ml_satellite_color(sat, fallback="red"):
+def get_ml_satellite_color(sat: Any, fallback: Union[str, Tuple[float, float, float]] = "red") -> Union[str, Tuple[float, float, float]]:
     """
     Prefer ML classification color if available, else fallback to famous satellite colors.
     """

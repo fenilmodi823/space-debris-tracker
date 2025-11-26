@@ -13,7 +13,7 @@ import time
 import errno
 import shutil
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Tuple, Optional
 
@@ -116,7 +116,7 @@ def fetch_tle(group: str = "active",
     # 3) Validate and store
     _validate_tle_text(text)
 
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_path = group_dir / f"{ts}.tle"
     out_path.write_text(text, encoding="utf-8")
 

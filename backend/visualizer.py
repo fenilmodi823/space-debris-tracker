@@ -10,6 +10,11 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from matplotlib.animation import FuncAnimation
 from itertools import count
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from cartopy.mpl.geoaxes import GeoAxes
+
 
 from skyfield.api import load
 from backend.utils import get_utc_timestamp, get_ml_satellite_color
@@ -56,7 +61,7 @@ def plot_positions(satellites, max_labels=10):
             continue
 
     fig = plt.figure(figsize=(14, 7))
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = cast("GeoAxes", plt.axes(projection=ccrs.PlateCarree()))
     ax.stock_img()
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS, linestyle=':')
@@ -114,7 +119,7 @@ def plot_animated_positions(satellites, steps=120, interval_ms=200, max_sats=10)
 
     # Setup plot
     fig = plt.figure(figsize=(14, 7))
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = cast("GeoAxes", plt.axes(projection=ccrs.PlateCarree()))
     ax.stock_img()
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS, linestyle=':')
@@ -178,7 +183,7 @@ def plot_animated_positions_live(satellites, interval_ms=200, max_sats=50):
 
     # Setup plot
     fig = plt.figure(figsize=(14, 7))
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = cast("GeoAxes", plt.axes(projection=ccrs.PlateCarree()))
     ax.stock_img()
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS, linestyle=':')

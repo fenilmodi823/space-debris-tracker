@@ -10,11 +10,11 @@
 
 **Space Debris Tracker** is a Python-based satellite tracking system that:
 
-- Fetches live orbital data (TLEs) from CelesTrak  
-- Predicts orbital positions using astronomical algorithms (Skyfield)  
-- Uses **Machine Learning** to classify objects as Payloads, Rocket Bodies, or Debris  
-- Visualizes satellites in 2D (Cartopy + Matplotlib) and interactive 3D (PyVista)  
-- Detects close approaches between objects and issues alerts  
+- Fetches live orbital data (TLEs) from CelesTrak
+- Predicts orbital positions using astronomical algorithms (Skyfield)
+- Uses **Machine Learning** to classify objects as Payloads, Rocket Bodies, or Debris
+- Visualizes satellites in 2D (Cartopy + Matplotlib) and interactive 3D (PyVista)
+- Detects close approaches between objects and issues alerts
 - Highlights famous satellites like the **ISS**, **Hubble**, **Starlink**, **Landsat**, and **Sentinel**
 
 Originally designed as a final-year engineering capstone, the project also serves as a foundation for future real-time web integration and educational outreach.
@@ -23,14 +23,14 @@ Originally designed as a final-year engineering capstone, the project also serve
 
 ## ✨ Features
 
-- ✅ Real-time TLE fetching from [CelesTrak](https://celestrak.org)  
-- ✅ Machine Learning–based object classification  
-- ✅ Load and visualize famous satellites (ISS, Hubble, etc.)  
-- ✅ Position prediction using Skyfield  
-- ✅ 2D static and animated Earth maps (Cartopy + Matplotlib)  
-- ✅ Collision detection engine with ML-aware proximity alerts  
-- ✅ 3D Earth visualization with altitude rings (LEO, MEO, GEO)  
-- ✅ ML color-coding for Payload, Rocket Body, and Debris  
+- ✅ Real-time TLE fetching from [CelesTrak](https://celestrak.org)
+- ✅ Machine Learning–based object classification
+- ✅ Load and visualize famous satellites (ISS, Hubble, etc.)
+- ✅ Position prediction using Skyfield
+- ✅ 2D static and animated Earth maps (Cartopy + Matplotlib)
+- ✅ Collision detection engine with ML-aware proximity alerts
+- ✅ 3D Earth visualization with altitude rings (LEO, MEO, GEO)
+- ✅ ML color-coding for Payload, Rocket Body, and Debris
 - ⏳ Interactive UI panels and full web deployment (planned)
 
 ---
@@ -38,63 +38,81 @@ Originally designed as a final-year engineering capstone, the project also serve
 ## 📁 Project Structure
 
 ```text
-Space Debris Tracker/
-|-- LICENSE
-|-- README.md
-|-- requirements.txt
-|-- assets/
-|   |-- models/
-|   |   |-- earth/
-|   |   |   |-- earth.glb
-|   |   |   |-- earth.mtl
-|   |   |   \-- earth.obj
-|   |   \-- satellites/
-|   |       |-- Hubble Space Telescope (A).glb
-|   |       \-- International Space Station (ISS) (A).glb
-|   \-- textures/
-|       |-- clouds.png
-|       \-- earth_day.jpg
-|-- backend/
-|   |-- build_dataset.py
-|   |-- check_dataset.py
-|   |-- collision_checker.py
-|   |-- config.py
-|   |-- main.py
-|   |-- orbit_plotter.py
-|   |-- orbit_predictor.py
-|   |-- tle_fetcher.py
-|   |-- train_model.py
-|   |-- utils.py
-|   |-- visualizer.py
-|   |-- __init__.py
-|   \-- __pycache__/
-|       |-- collision_checker.cpython-313.pyc
-|       |-- orbit_plotter.cpython-313.pyc
-|       |-- orbit_predictor.cpython-313.pyc
-|       |-- poliastro.cpython-313.pyc
-|       |-- tle_fetcher.cpython-313.pyc
-|       |-- utils.cpython-313.pyc
-|       |-- visualizer.cpython-313.pyc
-|       \-- __init__.cpython-313.pyc
-|-- data/
-|   |-- latest_tle.txt
-|   |-- tle_features_all.csv
-|   |-- tle_features_labeled.csv
-|   \-- famous_tles/
-|       \-- famous.txt
-|-- docs/
-|-- kernels/
-|-- ml_models/
-|   \-- object_classifier.joblib
-|-- models/
-|   |-- iss.mtl
-|   \-- iss.obj
-|-- notebooks/
-|-- screenshots/
-\-- tests/
-    |-- sample.tle
-    |-- test_orbit_predictor.py
-    \-- test_time_steps.py
+space-debris-tracker/
+├─ pyproject.toml              # Project metadata & dependencies (Python 3.11)
+├─ requirements.txt            # Pinned dependencies
+├─ README.md                   # You are here
+│
+├─ assets/
+│  ├─ models/
+│  │  ├─ earth/
+│  │  │   earth.glb
+│  │  │   earth.mtl
+│  │  │   earth.obj
+│  │  └─ satellites/
+│  │      Hubble Space Telescope (A).glb
+│  │      International Space Station (ISS) (A).glb
+│  └─ textures/
+│      clouds.png
+│      earth_day.jpg
+│
+├─ backend/
+│  ├─ .env                     # NASA API key, config (not committed to GitHub)
+│  ├─ __init__.py              # Makes `backend` a package
+│  ├─ main.py                  # Main entry: python -m backend.main
+│  ├─ build_dataset.py         # Build CSV dataset from TLEs
+│  ├─ check_dataset.py         # Quick sanity checks on CSV
+│  ├─ collision_checker.py     # Close-approach detection
+│  ├─ config.py                # Central config (paths, thresholds, API base URLs)
+│  ├─ nasa_client.py           # NASA API access helpers
+│  ├─ orbit_plotter.py         # 3D PyVista orbit visualization
+│  ├─ orbit_predictor.py       # Time-step prediction of orbits from TLE
+│  ├─ test_utils_temp.py       # Temporary/manual test helpers
+│  ├─ tle_fetcher.py           # Fetches and stores TLE files
+│  ├─ train_model.py           # Trains ML classifier from features CSV
+│  ├─ utils.py                 # Common utilities (time, distance, ML colors, etc.)
+│  ├─ visualizer.py            # 2D Cartopy visualizations (static + animated)
+│  │
+│  ├─ scripts/
+│  │  ├─ health_check.py       # Basic project health checks
+│  │  ├─ run_health.ps1        # PowerShell runner for health_check
+│  │  ├─ test_nasa_client.py   # Test NASA connectivity & responses
+│  │  ├─ test_tle_fetch.py     # Quick TLE fetch tests
+│  │  ├─ verify_cleanup.py     # Sanity check for generated files
+│  │  └─ _init_.py             # (typo; should be __init__.py if used as package)
+│  │
+│  ├─ utils/
+│  │  └─ _init_.py             # (placeholder for future shared utilities)
+│  └─ __pycache__/             # Python cache (ignored by git)
+│
+├─ data/
+│  ├─ latest_tle.txt           # Last downloaded TLE snapshot
+│  ├─ tle_features_all.csv     # Extracted features for many objects
+│  ├─ tle_features_labeled.csv # Labeled feature dataset (for ML training)
+│  │
+│  ├─ famous_tles/
+│  │  └─ famous.txt            # TLEs for selected famous satellites (ISS, Hubble…)
+│  └─ tle/
+│     └─ active/
+│         YYYYMMDD_HHMMSS.tle  # Historical TLE snapshots
+│
+├─ ml_models/
+│  └─ object_classifier.joblib # Trained RandomForest classifier
+│
+├─ models/
+│  ├─ iss.obj
+│  └─ iss.mtl                  # Standalone ISS model (legacy)
+│
+├─ screenshots/
+│  └─ orbit_view_*.png         # Saved PyVista 3D orbit screenshots
+│
+├─ tests/
+│  ├─ sample.tle
+│  ├─ test_orbit_predictor.py  # Unit tests for orbit time-steps
+│  └─ test_time_steps.py       # Additional time-step logic tests
+│
+└─ tools/
+   └─ fix_backend_imports.py   # Helper script for import path cleanup
 ```
 
 ---
@@ -131,35 +149,35 @@ Close approach: STARLINK-1234 [Debris 88%] ↔ STARLINK-5678 [Payload 92%] — 4
 
 ## 🗺️ Development Roadmap
 
-| Phase | Feature                                      | Status        |
-|-------|----------------------------------------------|---------------|
-| 1     | Project Setup + TLE Fetcher                  | ✅ Complete    |
-| 2     | Position Prediction                          | ✅ Complete    |
-| 3     | 2D Static Map                                | ✅ Complete    |
-| 4     | Animated Orbit Map                           | ✅ Complete    |
-| 5     | Collision Detection                          | ✅ Complete    |
-| 6     | Flask / FastAPI Backend                      | ⏳ On Hold     |
-| 7     | Interactive 3D Orbit Visualization           | ✅ Complete    |
-| 8     | Famous Satellite Tracking (Live)             | ✅ Complete    |
-| 9     | Machine Learning Object Classification       | ✅ Complete    |
-| 10    | Overlay UI Panels, Object Info, Filtering    | 🔜 In Progress |
-| 11    | Final Report, Submission, Packaging          | 🔜 Upcoming    |
+| Phase | Feature                                   | Status         |
+| ----- | ----------------------------------------- | -------------- |
+| 1     | Project Setup + TLE Fetcher               | ✅ Complete    |
+| 2     | Position Prediction                       | ✅ Complete    |
+| 3     | 2D Static Map                             | ✅ Complete    |
+| 4     | Animated Orbit Map                        | ✅ Complete    |
+| 5     | Collision Detection                       | ✅ Complete    |
+| 6     | Flask / FastAPI Backend                   | ⏳ On Hold     |
+| 7     | Interactive 3D Orbit Visualization        | ✅ Complete    |
+| 8     | Famous Satellite Tracking (Live)          | ✅ Complete    |
+| 9     | Machine Learning Object Classification    | ✅ Complete    |
+| 10    | Overlay UI Panels, Object Info, Filtering | 🔜 In Progress |
+| 11    | Final Report, Submission, Packaging       | 🔜 Upcoming    |
 
 ---
 
 ## 📚 References
 
-- [Celestrak TLE Data](https://celestrak.org/NORAD/elements/)  
-- [LeoLabs Visualization (Inspiration)](https://platform.leolabs.space/visualizations/leo)  
-- [Skyfield Documentation](https://rhodesmill.org/skyfield/)  
-- [PyVista Documentation](https://docs.pyvista.org/)  
-- [scikit-learn Documentation](https://scikit-learn.org/stable/)  
+- [Celestrak TLE Data](https://celestrak.org/NORAD/elements/)
+- [LeoLabs Visualization (Inspiration)](https://platform.leolabs.space/visualizations/leo)
+- [Skyfield Documentation](https://rhodesmill.org/skyfield/)
+- [PyVista Documentation](https://docs.pyvista.org/)
+- [scikit-learn Documentation](https://scikit-learn.org/stable/)
 
 ---
 
 ## 📜 License
 
-MIT License *(to be confirmed at final stage)*
+MIT License _(to be confirmed at final stage)_
 
 ---
 

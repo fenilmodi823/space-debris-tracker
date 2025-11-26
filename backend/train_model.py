@@ -1,5 +1,11 @@
 # backend/train_model.py
 # Python 3.10+
+#
+# Trains a Random Forest classifier to predict object type (Payload, Rocket Body, Debris)
+# based on orbital parameters (Inclination, Eccentricity, Mean Motion, BSTAR).
+#
+# Usage:
+#   python -m backend.train_model
 
 import os
 import sys
@@ -13,12 +19,16 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 
-DATA_PATH = Path("data") / "tle_features_labeled.csv"
-MODEL_DIR = Path("ml_models"); MODEL_DIR.mkdir(parents=True, exist_ok=True)
+# Use paths relative to this script for robustness
+ROOT_DIR = Path(__file__).resolve().parents[1]  # backend/.. -> root
+DATA_PATH = ROOT_DIR / "data" / "tle_features_labeled.csv"
+MODEL_DIR = ROOT_DIR / "ml_models"
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = MODEL_DIR / "object_classifier.joblib"
 
 if not DATA_PATH.exists():
     print(f"[X] Training data not found at {DATA_PATH.resolve()}")
+    print("    Run 'python -m backend.build_dataset' (if available) or ensure the CSV exists.")
     sys.exit(1)
 
 df = pd.read_csv(DATA_PATH)
@@ -101,9 +111,17 @@ except ImportError:
     sys.exit(4)
 
 ros = RandomOverSampler(random_state=42)
-X_tr_bal, y_tr_bal = ros.fit_resample(X_tr, y_tr)
+
+# fit_resample can (in stubs) return 2 or 3 items; use a temp variable to keep Pylance happy
+resampled = ros.fit_resample(X_tr, y_tr)
+
+# Explicitly convert to NumPy arrays so types are clear
+X_tr_bal = np.asarray(resampled[0])
+y_tr_bal = np.asarray(resampled[1])
+
 print(f"[i] Oversampled train size: {len(y_tr)} → {len(y_tr_bal)}")
 print(pd.Series(y_tr_bal).value_counts())
+
 
 # --- Train models on oversampled training data -------------------------------
 print("\n=== Baseline: Logistic Regression (oversampled train) ===")

@@ -51,49 +51,67 @@ def _fetch_tle_by_name(name: str, timeout: int = 30) -> tuple[str, str] | None:
 # --------------------------------------------------------------------
 # Load general satellite TLEs from local file
 # --------------------------------------------------------------------
-def load_tles(file_path: str = "data/latest_tle.txt"):
+def load_tles(file_path: str = "data/latest_tle.txt") -> list[EarthSatellite]:
     """
-    Load satellites from a local TLE file. Supports:
-      - 3-line format (NAME, L1, L2)
-      - 2-line format (L1, L2) with UNKNOWN name
+    Load satellites from a local TLE file.
+    
+    Supports mixed formats in the same file:
+      - 3-line format: (Name, Line1, Line2)
+      - 2-line format: (Line1, Line2) -> Name defaults to "UNKNOWN"
+      
+    Args:
+        file_path: Path to the TLE file.
+        
+    Returns:
+        List of Skyfield EarthSatellite objects.
     """
     satellites = []
     ts = load.timescale()
 
     try:
         with open(file_path, "r", encoding="utf-8") as file:
+            # Filter out empty lines immediately
             lines = [line.strip() for line in file if line.strip()]
 
-        i = 0
-        while i <= len(lines) - 2:
-            # 3-line pattern: NAME, line1, line2
-            if i + 2 < len(lines) and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
-                name = lines[i]
-                line1 = lines[i + 1]
-                line2 = lines[i + 2]
-                i += 3
-            # 2-line pattern: line1, line2 (no name available)
-            elif lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
-                name = "UNKNOWN"
-                line1 = lines[i]
-                line2 = lines[i + 1]
-                i += 2
-            else:
-                i += 1
-                continue
+    except FileNotFoundError:
+        print(f"TLE file '{file_path}' not found.")
+        return []
 
+    i = 0
+    n = len(lines)
+    
+    while i < n:
+        # Check for 3-line format: Name, Line1, Line2
+        # We need at least 3 lines remaining, and the structure must match
+        if i + 2 < n and lines[i+1].startswith("1 ") and lines[i+2].startswith("2 "):
+            name = lines[i]
+            line1 = lines[i+1]
+            line2 = lines[i+2]
             try:
                 sat = EarthSatellite(line1, line2, name, ts)
                 satellites.append(_attach_tle_metadata(sat, line1, line2))
             except Exception:
-                # Skip invalid TLEs but continue parsing
-                continue
+                pass # Skip malformed TLEs
+            i += 3
+            
+        # Check for 2-line format: Line1, Line2
+        # We need at least 2 lines remaining
+        elif i + 1 < n and lines[i].startswith("1 ") and lines[i+1].startswith("2 "):
+            name = "UNKNOWN"
+            line1 = lines[i]
+            line2 = lines[i+1]
+            try:
+                sat = EarthSatellite(line1, line2, name, ts)
+                satellites.append(_attach_tle_metadata(sat, line1, line2))
+            except Exception:
+                pass
+            i += 2
+            
+        else:
+            # Current line doesn't start a valid TLE block, skip it
+            i += 1
 
-        print(f"Loaded {len(satellites)} satellites from TLE file.")
-
-    except FileNotFoundError:
-        print(f"TLE file '{file_path}' not found.")
-
+    print(f"Loaded {len(satellites)} satellites from TLE file.")
     return satellites
 
 
