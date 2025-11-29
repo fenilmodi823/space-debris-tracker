@@ -333,7 +333,7 @@ pytest
 1. Vallado, D. A. *Fundamentals of Astrodynamics and Applications*.
 2. [NASA Orbital Debris Program Office](https://orbitaldebris.jsc.nasa.gov)
 3. [CelesTrak TLE Catalog](https://celestrak.org)
-4. [ESA Space Situational Awareness Programme](https://www.esa.int/ssa)
+4. [ESA Space Situational Awareness Programme](https://www.esa.int/About_Us/ESAC/Space_Situational_Awareness_-_SSA)
 5. [scikit-learn Documentation](https://scikit-learn.org)
 6. [Skyfield Documentation](https://rhodesmill.org/skyfield)
 7. [PyVista Documentation](https://docs.pyvista.org)
