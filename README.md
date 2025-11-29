@@ -1,41 +1,101 @@
-# 🛰️ Space Debris Tracker
+# 🛰️ Space Debris Tracking System
 
-**Author:** Fenil Modi  
-**Status:** Phase 9 – Machine Learning Integration & Finalization  
-**Objective:** Predict satellite orbits, detect potential collisions, classify objects using ML, and visualize Earth’s orbital environment in 2D and 3D.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
----
+A machine-learning-enhanced computational tool for tracking, propagating, and visualizing orbital debris using real astrodynamics data. Designed with a research-style scientific structure inspired by modern Space Situational Awareness (SSA) practices.
 
-## 🌍 Project Overview
+## 📌 Table of Contents
 
-**Space Debris Tracker** is a Python-based satellite tracking system that:
+- [Overview](#overview)
+- [Scientific Motivation](#scientific-motivation)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Project](#running-the-project)
+- [Usage Examples](#usage-examples)
+- [Machine Learning Component](#machine-learning-component)
+- [Technologies Used](#technologies-used)
+- [Roadmap](#roadmap)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [References](#references)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
-- Fetches live orbital data (TLEs) from CelesTrak
-- Predicts orbital positions using astronomical algorithms (Skyfield)
-- Uses **Machine Learning** to classify objects as Payloads, Rocket Bodies, or Debris
-- Visualizes satellites in 2D (Cartopy + Matplotlib) and interactive 3D (PyVista)
-- Detects close approaches between objects and issues alerts
-- Highlights famous satellites like the **ISS**, **Hubble**, **Starlink**, **Landsat**, and **Sentinel**
+## Overview
 
-Originally designed as a final-year engineering capstone, the project also serves as a foundation for future real-time web integration and educational outreach.
+The Space Debris Tracking System is a modular Python-based toolkit capable of:
 
----
+- Fetching and parsing real orbital datasets such as TLEs
+- Propagating satellite and debris orbits
+- Classifying objects using ML models
+- Producing 3D visualizations of Earth and orbital tracks
+- Exposing a backend API for dashboards and external applications
 
-## ✨ Features
+Although developed within an engineering context, the design style aligns closely with scientific computing and astrophysics toolkits.
 
-- ✅ Real-time TLE fetching from [CelesTrak](https://celestrak.org)
-- ✅ Machine Learning–based object classification
-- ✅ Load and visualize famous satellites (ISS, Hubble, etc.)
-- ✅ Position prediction using Skyfield
-- ✅ 2D static and animated Earth maps (Cartopy + Matplotlib)
-- ✅ Collision detection engine with ML-aware proximity alerts
-- ✅ 3D Earth visualization with altitude rings (LEO, MEO, GEO)
-- ✅ ML color-coding for Payload, Rocket Body, and Debris
-- ⏳ Interactive UI panels and full web deployment (planned)
+## Scientific Motivation
 
----
+The density of space debris continues to increase due to:
 
-## 📁 Project Structure
+- Large satellite deployments
+- Fragmentation events
+- Retired spacecraft
+- Rocket bodies left in orbit
+
+This creates measurable risks including:
+
+- Collision cascades (Kessler Syndrome)
+- Threats to commercial and scientific missions
+- Difficulty in long-term orbital sustainability
+
+The purpose of this project is to explore computational astrodynamics, machine learning, and visualization techniques that help understand and model orbital environments at an academic level.
+
+## Key Features
+
+- **Orbital Data Ingestion**: Support for TLE sources such as CelesTrak, with parsing and validation utilities.
+- **Orbit Propagation**: High-precision propagation using Skyfield/SGP4.
+- **Machine Learning Classification**: Pretrained scikit-learn models for classifying objects into: payload, rocket body, debris.
+- **3D Earth & Orbit Visualization**: Render orbits with PyVista or similar libraries.
+- **REST API Backend**: FastAPI-powered backend enabling external access to propagation, classification, and data services.
+- **Extensible Modular Design**: Organized into clear layers: orbit mechanics, ML, visualization, and API.
+
+## System Architecture
+
+```mermaid
+graph TD
+    subgraph Data Ingestion Layer
+        A[TLE Fetch + Parsing]
+    end
+
+    subgraph Orbit Propagation Core
+        B[Skyfield / SGP4]
+    end
+
+    subgraph Machine Learning Module
+        C[Classification Payload/Body/Debris]
+    end
+
+    subgraph Visualization Engine
+        D[3D Earth + Orbits]
+    end
+
+    subgraph Backend API
+        E[FastAPI]
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    C --> E
+    D --> E
+```
+
+## Project Structure
 
 ```text
 space-debris-tracker/
@@ -115,70 +175,180 @@ space-debris-tracker/
    └─ fix_backend_imports.py   # Helper script for import path cleanup
 ```
 
----
+## Installation
 
-## 🖼️ Sample Output
+### Clone the Repository
 
-[1/4] Fetching latest TLE data...
-[✔] TLE data saved to data/latest_tle.txt
+```bash
+git clone https://github.com/fenilmodi823/space-debris-tracker.git
+cd space-debris-tracker
+```
 
-[2/4] Loading famous satellites from CelesTrak...
-✔ Total satellites loaded: 5
+### Create a Virtual Environment
 
-[3/4] Checking for close approaches...
-Close approach: STARLINK-1234 [Debris 88%] ↔ STARLINK-5678 [Payload 92%] — 4.32 km at 12:15:30
-✔ Collision analysis complete.
+```bash
+python -m venv .venv
+```
 
-[4/4] Visualizing satellite orbits...
-✔ Interactive 3D Earth launched with ML color-coded trails
+**Activate:**
 
----
+- Windows:
+  ```powershell
+  .venv\Scripts\activate
+  ```
+- Linux/macOS:
+  ```bash
+  source .venv/bin/activate
+  ```
 
-## 🧪 Technologies Used
+### Install Dependencies
 
-- **Python 3**
-- **Skyfield** – orbital mechanics and TLE parsing
-- **scikit-learn + imbalanced-learn** – ML classification
-- **pandas / NumPy** – data wrangling & computation
-- **Cartopy + Matplotlib** – 2D static & animated maps
-- **PyVista** – interactive 3D visualization
-- **Requests** – API & data fetching
-- **Joblib** – model persistence
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
----
+## Configuration
 
-## 🗺️ Development Roadmap
+Create a `.env` file based on `.env.example`.
 
-| Phase | Feature                                   | Status         |
-| ----- | ----------------------------------------- | -------------- |
-| 1     | Project Setup + TLE Fetcher               | ✅ Complete    |
-| 2     | Position Prediction                       | ✅ Complete    |
-| 3     | 2D Static Map                             | ✅ Complete    |
-| 4     | Animated Orbit Map                        | ✅ Complete    |
-| 5     | Collision Detection                       | ✅ Complete    |
-| 6     | Flask / FastAPI Backend                   | ⏳ On Hold     |
-| 7     | Interactive 3D Orbit Visualization        | ✅ Complete    |
-| 8     | Famous Satellite Tracking (Live)          | ✅ Complete    |
-| 9     | Machine Learning Object Classification    | ✅ Complete    |
-| 10    | Overlay UI Panels, Object Info, Filtering | 🔜 In Progress |
-| 11    | Final Report, Submission, Packaging       | 🔜 Upcoming    |
+**Example:**
 
----
+```ini
+NASA_API_KEY=your_api_key_here
+DATA_SOURCE_URL=https://celestrak.org/NORAD/elements/gp.php?CATNR=
+LOG_LEVEL=INFO
+```
 
-## 📚 References
+## Running the Project
 
-- [Celestrak TLE Data](https://celestrak.org/NORAD/elements/)
-- [LeoLabs Visualization (Inspiration)](https://platform.leolabs.space/visualizations/leo)
-- [Skyfield Documentation](https://rhodesmill.org/skyfield/)
-- [PyVista Documentation](https://docs.pyvista.org/)
-- [scikit-learn Documentation](https://scikit-learn.org/stable/)
+### Start the API
 
----
+```bash
+uvicorn backend.main:app --reload
+```
 
-## 📜 License
+**Visit:**
 
-MIT License _(to be confirmed at final stage)_
+- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- ReDoc (if enabled): [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
----
+## Usage Examples
 
-> “Making space situational awareness accessible and visual — now with machine learning.” 🌌
+### Propagate an Object
+
+```bash
+curl "http://127.0.0.1:8000/propagate?norad_id=25544&minutes=120"
+```
+
+### Python Orbit Propagation
+
+```python
+from backend.orbit.propagation import propagate_tle
+from datetime import datetime, timedelta
+
+positions = propagate_tle(tle_line1, tle_line2, datetime.utcnow(), datetime.utcnow() + timedelta(minutes=90))
+for t, (x,y,z) in positions:
+    print(t, x, y, z)
+```
+
+### Classify an Object
+
+```python
+from backend.ml.classifier import classify_object
+
+features = {
+    "semi_major_axis": 6780.0,
+    "eccentricity": 0.0005,
+    "inclination": 51.6,
+    "period_minutes": 92.6
+}
+
+print(classify_object(features))
+```
+
+## Machine Learning Component
+
+- **Model Type**: Decision Tree / Random Forest (scikit-learn)
+- **Predicted Classes**:
+    - Payload
+    - Rocket Body
+    - Debris
+- **Feature Set Examples**:
+    - Semi-major axis
+    - Eccentricity
+    - Inclination
+    - Orbital period
+    - Derived orbital parameters
+- **Training Pipeline**:
+    1. Data preprocessing
+    2. Feature extraction
+    3. Model training
+    4. Model serialization with joblib
+
+## Technologies Used
+
+- **Python 3.x**
+- **FastAPI**
+- **Uvicorn**
+- **Skyfield / SGP4**
+- **scikit-learn**
+- **NumPy, pandas**
+- **PyVista, Matplotlib**
+- **pytest** (for tests)
+
+## Roadmap
+
+- [ ] Add J2 and atmospheric drag perturbation models
+- [ ] Add conjunction (collision risk) prediction
+- [ ] Add orbital decay prediction using ML
+- [ ] Enhance 3D Earth rendering (NASA Eyes–style)
+- [ ] Build full React.js dashboard
+- [ ] Add Docker-based deployment
+- [ ] Package as a pip-installable module
+
+## Testing
+
+Run tests using:
+
+```bash
+pytest
+```
+
+## Contributing
+
+1. Follow PEP 8.
+2. Add docstrings for all public modules and functions.
+3. Write tests for new features.
+4. Use meaningful commit messages.
+5. Keep modules logically separated (orbit, ML, API, viz).
+
+## Data Sources
+
+- **CelesTrak**: Primary source for Two-Line Element sets (TLEs).
+- **Space-Track.org**: Official source for space situational awareness data (requires account).
+
+## References
+
+1. Vallado, D. A. *Fundamentals of Astrodynamics and Applications*.
+2. [NASA Orbital Debris Program Office](https://orbitaldebris.jsc.nasa.gov)
+3. [CelesTrak TLE Catalog](https://celestrak.org)
+4. [ESA Space Situational Awareness Programme](https://www.esa.int/ssa)
+5. [scikit-learn Documentation](https://scikit-learn.org)
+6. [Skyfield Documentation](https://rhodesmill.org/skyfield)
+7. [PyVista Documentation](https://docs.pyvista.org)
+
+## Acknowledgements
+
+Developed as an academic project exploring:
+
+- Orbital mechanics
+- Space debris studies
+- Machine learning
+- Scientific visualization
+
+The structure and documentation style follow conventions used in astrophysics and space-science computational tools.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
