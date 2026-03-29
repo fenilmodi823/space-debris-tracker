@@ -10,7 +10,7 @@ authors = [
     { name = "Fenil Modi" },
 ]
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 
 dependencies = [
@@ -45,6 +45,9 @@ dependencies = [
     "tzdata==2025.2",
     "packaging==25.0",
     "imageio==2.37.2",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "python-dotenv>=1.0.1",
 ]
 
 [project.optional-dependencies]

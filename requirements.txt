@@ -1,5 +1,5 @@
 ###############################################################
-# Space Debris Tracker — Requirements (Python 3.11)
+# Space Debris Tracker — Requirements (Python 3.12)
 # Contains only direct + essential dependencies.
 # Works on Windows, macOS, and Linux.
 ###############################################################
@@ -50,6 +50,11 @@ packaging==25.0
 
 # Animation / media support
 imageio==2.37.2
+
+# Backend API & Environment (New Architecture)
+fastapi>=0.110.0
+uvicorn>=0.29.0
+python-dotenv>=1.0.1
 
 ###############################################################
 # NOTE:

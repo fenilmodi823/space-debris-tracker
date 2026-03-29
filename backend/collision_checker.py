@@ -1,129 +1,109 @@
-from itertools import combinations
 import numpy as np
+from scipy.spatial import KDTree
 from skyfield.api import load, EarthSatellite
-from backend.utils import calculate_distance_km
-from typing import List, Set, Optional, Tuple
-
-
-# ----------------------------------
-# Collision Detection
-# ----------------------------------
+from typing import List, Set, Optional
 
 def check_collisions(
     satellites: List[EarthSatellite],
     threshold_km: float = 10.0,
     minutes: int = 60,
-    step_seconds: int = 30,
+    step_seconds: int = 60,
     verbose: bool = True,
-    include_types: Optional[Set[str]] = None,      # e.g., {"Debris", "Rocket Body"}
-    min_confidence: float = 0.0       # ignore sats with pred_conf < this
+    include_types: Optional[Set[str]] = None,
+    min_confidence: float = 0.0
 ) -> List[str]:
     """
-    Checks for potential close approaches between satellite pairs.
-    
-    This performs a pairwise check (O(N^2)) over a time grid.
-    For large N, this can be slow. Consider using spatial indexing (KDTree)
-    or SGP4 propagators with filters for production use.
-
-    Parameters:
-        satellites: List of Skyfield EarthSatellite objects to analyze.
-        threshold_km: Distance threshold (km) for triggering an alert.
-        minutes: Look-ahead time window in minutes.
-        step_seconds: Simulation step size in seconds.
-        verbose: If True, prints progress and skipped satellites.
-        include_types: Optional set of strings. If provided, only satellites whose
-            `pred_type` attribute is in this set are considered.
-        min_confidence: If `pred_conf` attribute exists and is below this value,
-            the satellite is skipped.
-
-    Returns:
-        List of human-readable alert strings describing close approaches.
+    Optimized collision detection using KD-Trees (Spatial Indexing).
+    Complexity: O(T * N log N) instead of O(T * N^2).
     """
     ts = load.timescale()
     t0 = ts.now()
     step_days = step_seconds / 86400.0
-
     n_steps = max(1, (minutes * 60) // step_seconds)
-    time_steps = [t0 + i * step_days for i in range(n_steps)]
-
-    # Optional ML-based filtering
-    def _ml_ok(sat: EarthSatellite) -> bool:
-        if include_types:
-            sat_type = getattr(sat, "pred_type", None)
-            if sat_type not in include_types:
-                return False
-        if min_confidence > 0.0:
-            conf = float(getattr(sat, "pred_conf", 1.0))
-            if conf < min_confidence:
-                return False
-        return True
-
-    # Build usable satellites and precompute tracks
-    usable: List[Tuple[EarthSatellite, List[np.ndarray]]] = []
+    
+    # Generate time steps
+    times = [t0 + i * step_days for i in range(n_steps)]
+    
+    # Filter satellites first
+    valid_sats = []
     for sat in satellites:
-        if not _ml_ok(sat):
-            if verbose:
-                name = getattr(sat, "name", "UNKNOWN")
-                print(f"[skip] {name}: filtered by ML (type/conf)")
-            continue
+        # Check type filter
+        if include_types:
+            stype = getattr(sat, "pred_type", None)
+            if stype not in include_types:
+                continue
+        # Check confidence filter
+        if min_confidence > 0:
+            conf = getattr(sat, "pred_conf", 1.0)
+            if conf < min_confidence:
+                continue
+        valid_sats.append(sat)
 
-        try:
-            # Pre-calculate position vectors for all time steps
-            # .position.km returns [x, y, z] in GCRS
-            track = [np.array(sat.at(t).position.km) for t in time_steps]
-            usable.append((sat, track))
-        except Exception as e:
-            if verbose:
-                print(f"[skip] {getattr(sat, 'name', 'UNKNOWN')}: {e}")
-            continue
-
-    if verbose:
-        print(f"Checking {len(usable)} satellites over {minutes} minutes at {step_seconds}s resolution...")
-
-    if len(usable) < 2:
-        if verbose:
-            print("Not enough satellites to compare.")
+    if len(valid_sats) < 2:
         return []
 
-    # Compare all unique pairs
-    alerts = []
-    for (sat1, track1), (sat2, track2) in combinations(usable, 2):
-        # Find minimum separation over the time grid
-        dmin = float("inf")
-        imin = -1
+    if verbose:
+        print(f"[⚡] Running KD-Tree collision check on {len(valid_sats)} satellites over {minutes} mins...")
+
+    alerts = set() # Use set to avoid duplicate alerts
+
+    # ---------------------------------------------------------
+    # OPTIMIZATION: Evaluate positions in batches per time step
+    # ---------------------------------------------------------
+    for t_idx, t in enumerate(times):
+        # 1. Bulk calculate positions for this timestep
+        positions = []
+        current_sats = []
         
-        # Vectorized distance check would be faster, but keeping it simple/readable
-        for i, (p1, p2) in enumerate(zip(track1, track2)):
-            d = calculate_distance_km(p1, p2)
-            if d < dmin:
-                dmin = d
-                imin = i
+        for sat in valid_sats:
+            try:
+                # Skyfield position calculation
+                pos = sat.at(t).position.km
+                positions.append(pos)
+                current_sats.append(sat)
+            except Exception:
+                continue
 
-        if dmin < threshold_km and imin >= 0:
-            t_alert = time_steps[imin].utc_strftime("%H:%M:%S")
+        if len(positions) < 2:
+            continue
 
-            # ML adornments (if present)
-            t1 = getattr(sat1, "pred_type", None)
-            c1 = getattr(sat1, "pred_conf", None)
-            t2 = getattr(sat2, "pred_type", None)
-            c2 = getattr(sat2, "pred_conf", None)
+        # 2. Build Spatial Index (KD-Tree)
+        tree = KDTree(positions)
 
-            def label(sat, t, c):
-                base = getattr(sat, "name", "UNKNOWN")
-                if t is not None and c is not None:
-                    return f"{base} [{t} {c:.0%}]"
-                if t is not None:
-                    return f"{base} [{t}]"
-                return base
+        # 3. Query for pairs within threshold
+        # returns set of (i, j) where i < j
+        pairs = tree.query_pairs(r=threshold_km)
 
-            name1 = label(sat1, t1, c1)
-            name2 = label(sat2, t2, c2)
+        if pairs:
+            timestamp = t.utc_strftime('%H:%M:%S')
+            for i, j in pairs:
+                s1 = current_sats[i]
+                s2 = current_sats[j]
+                
+                # Calculate exact distance
+                p1 = np.array(positions[i])
+                p2 = np.array(positions[j])
+                dist = np.linalg.norm(p1 - p2)
 
-            alert_msg = f"Close approach: {name1} ↔ {name2} — {dmin:.2f} km at {t_alert}"
-            print(alert_msg)
-            alerts.append(alert_msg)
+                # Format names with ML tags if available
+                def get_label(s):
+                    name = s.name
+                    stype = getattr(s, "pred_type", None)
+                    return f"{name} ({stype})" if stype else name
 
-    if not alerts:
-        print("No close approaches detected within the threshold.")
+                alert_msg = (
+                    f"🔴 COLLISION ALERT: {get_label(s1)} ⚔️ {get_label(s2)} "
+                    f"| Dist: {dist:.2f} km | Time: {timestamp}"
+                )
+                alerts.add(alert_msg)
 
-    return alerts
+    unique_alerts = sorted(list(alerts))
+    
+    if verbose:
+        if unique_alerts:
+            for a in unique_alerts:
+                print(a)
+        else:
+            print("✔ No collisions detected.")
+
+    return unique_alerts
