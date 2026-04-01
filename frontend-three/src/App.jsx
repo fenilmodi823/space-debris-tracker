@@ -149,6 +149,7 @@ function CameraController({ selectedSat, offsetMinutes, resetTrigger, baseTime }
     if (selectedSat) {
       // Cancel flight and unlock controls if they click a new satellite
       isReturning.current = false; 
+      // eslint-disable-next-line react-hooks/immutability
       if (controls) controls.enabled = true;
     } else if (!selectedSat && prevSat.current) {
       // Trigger flight home
@@ -160,6 +161,7 @@ function CameraController({ selectedSat, offsetMinutes, resetTrigger, baseTime }
   useEffect(() => {
     if (resetTrigger > 0) {
       isReturning.current = true;
+      // eslint-disable-next-line react-hooks/immutability
       if (controls) controls.enabled = false;
     }
   }, [resetTrigger, controls]);
@@ -177,6 +179,7 @@ function CameraController({ selectedSat, offsetMinutes, resetTrigger, baseTime }
         controls.target.lerp(new THREE.Vector3(pos.x * scale, pos.z * scale, -pos.y * scale), 0.1);
       }
     } else if (isReturning.current) {
+      // eslint-disable-next-line react-hooks/immutability
       controls.enabled = false;
 
       const targetCenter = new THREE.Vector3(0, 0, 0);
@@ -295,7 +298,7 @@ function SatelliteMesh({ sat, offsetMinutes, selectedSat, setSelectedSat, baseTi
           // Important: Stop propagation prevents clicks from hitting background elements
           onClick={(e) => { e.stopPropagation(); setSelectedSat(sat); }}
           onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }} 
-          onPointerOut={(e) => setHovered(false)}
+          onPointerOut={() => setHovered(false)}
         >
           <sphereGeometry args={[size, 16, 16]} />
           <meshBasicMaterial color={color} />
@@ -453,7 +456,7 @@ const calculateKesslerDensity = (sat) => {
 function App() {
   const [satellites, setSatellites] = useState([]);
   const [offsetMinutes, setOffsetMinutes] = useState(0);
-  const [baseTime, setBaseTime] = useState(Date.now());
+  const [baseTime, setBaseTime] = useState(() => Date.now());
   const [playbackRate, setPlaybackRate] = useState(0);
   const [selectedSat, setSelectedSat] = useState(null);
   
@@ -466,7 +469,7 @@ function App() {
 
   const [isSimulating, setIsSimulating] = useState(false);
   const [demoTarget, setDemoTarget] = useState(null);
-  const [simTelemetry, setSimTelemetry] = useState({primary: {}, rogue: {}});
+  const [_simTelemetry, setSimTelemetry] = useState({primary: {}, rogue: {}});
   const [simElapsed, setSimElapsed] = useState(0);
   const [telemetry, setTelemetry] = useState(null);
   const [showSwarm, setShowSwarm] = useState(false);
