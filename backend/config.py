@@ -1,6 +1,8 @@
 # config.py
 # Global configuration for the Space Debris Tracker project
 
+import os
+
 # ============================================================
 # 📡 TLE Fetching Configuration
 # ============================================================
@@ -51,7 +53,6 @@ COLLISION_THRESHOLD_KM = 10          # Danger threshold in km
 VERBOSE_MODE = True                  # Enable detailed terminal output
 
 # --- Added: NASA/CelesTrak configuration (Hybrid Approach: Step 1) ---
-import os
 try:
     from dotenv import load_dotenv  # type: ignore
     load_dotenv()

@@ -10,13 +10,16 @@ from typing import Iterable, Tuple, Optional
 ROOT = Path(r"D:\VS Code\Space Debris Tracker").resolve()
 BACKEND = ROOT / "backend"
 
+
 def die(msg: str) -> None:
     print(msg, file=sys.stderr)
     sys.exit(1)
 
+
 def ensure_backend() -> None:
     if not BACKEND.exists() or not (BACKEND / "__init__.py").exists():
         die(f"ERROR: backend/ or backend/__init__.py not found under {ROOT}")
+
 
 def collect_internal_toplevels() -> set[str]:
     names: set[str] = set()
@@ -27,12 +30,16 @@ def collect_internal_toplevels() -> set[str]:
             names.add(p.name)
     return names
 
+
 def parse_import_aliases(import_text: str) -> list[Tuple[str, Optional[str]]]:
     node = ast.parse("import " + import_text).body[0]
     assert isinstance(node, ast.Import)
     return [(n.name, n.asname) for n in node.names]
 
-def build_backend_lines(prefix: str, aliases: Iterable[Tuple[str, Optional[str]]]) -> list[str]:
+
+def build_backend_lines(
+    prefix: str, aliases: Iterable[Tuple[str, Optional[str]]]
+) -> list[str]:
     dotted, plain = [], []
     for name, asname in aliases:
         (dotted if "." in name else plain).append((name, asname))
@@ -44,11 +51,19 @@ def build_backend_lines(prefix: str, aliases: Iterable[Tuple[str, Optional[str]]
             parts.append(f"{name} as {asname}" if asname else name)
         lines.append(f"{prefix}from backend import {', '.join(parts)}")
     for name, asname in dotted:
-        lines.append(f"{prefix}import backend.{name}" + (f" as {asname}" if asname else ""))
+        lines.append(
+            f"{prefix}import backend.{name}" + (f" as {asname}" if asname else "")
+        )
     return lines
 
-_re_import = re.compile(r"^(?P<pre>\s*)import\s+(?P<rest>[^#\r\n]+)(?P<post>\s*(?:#.*)?)$")
-_re_from   = re.compile(r"^(?P<pre>\s*)from\s+(?P<mod>[^\s]+)\s+import\s+(?P<rest>[^#\r\n]+)(?P<post>\s*(?:#.*)?)$")
+
+_re_import = re.compile(
+    r"^(?P<pre>\s*)import\s+(?P<rest>[^#\r\n]+)(?P<post>\s*(?:#.*)?)$"
+)
+_re_from = re.compile(
+    r"^(?P<pre>\s*)from\s+(?P<mod>[^\s]+)\s+import\s+(?P<rest>[^#\r\n]+)(?P<post>\s*(?:#.*)?)$"
+)
+
 
 def rewrite_import_line(line: str, internal: set[str]) -> Optional[str]:
     m = _re_import.match(line)
@@ -80,7 +95,12 @@ def rewrite_import_line(line: str, internal: set[str]) -> Optional[str]:
         return "\n".join(new_lines) + ("\n" if not line.endswith("\n") else "")
     m2 = _re_from.match(line)
     if m2:
-        pre, mod, rest, post = m2.group("pre"), m2.group("mod").strip(), m2.group("rest").strip(), m2.group("post")
+        pre, mod, rest, post = (
+            m2.group("pre"),
+            m2.group("mod").strip(),
+            m2.group("rest").strip(),
+            m2.group("post"),
+        )
         if mod.startswith("backend") or mod.startswith("."):
             return None
         base = mod.split(".")[0]
@@ -88,12 +108,17 @@ def rewrite_import_line(line: str, internal: set[str]) -> Optional[str]:
             return f"{pre}from backend.{mod} import {rest}{post}\n"
     return None
 
+
 def rewrite_file(path: Path, internal: set[str]) -> bool:
     original = path.read_text(encoding="utf-8")
     out, changed = [], False
     for line in original.splitlines(keepends=True):
         stripped = line.lstrip()
-        if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
+        if (
+            stripped.startswith("#")
+            or stripped.startswith('"""')
+            or stripped.startswith("'''")
+        ):
             out.append(line)
             continue
         new_line = rewrite_import_line(line, internal)
@@ -105,6 +130,7 @@ def rewrite_file(path: Path, internal: set[str]) -> bool:
     if changed:
         path.write_text("".join(out), encoding="utf-8")
     return changed
+
 
 SHIM_TEMPLATE = """# Ensure project root is on sys.path when running via "python backend/scripts/..."
 import sys
@@ -120,6 +146,7 @@ if str(_REPO) not in sys.path:
 
 """
 
+
 def ensure_script_shim(script_path: Path) -> bool:
     txt = script_path.read_text(encoding="utf-8")
     if "Ensure project root is on sys.path" in txt:
@@ -128,18 +155,16 @@ def ensure_script_shim(script_path: Path) -> bool:
     script_path.write_text(block + txt, encoding="utf-8")
     return True
 
+
 def ensure_minimal_init() -> bool:
     init_path = BACKEND / "__init__.py"
-    minimal = (
-        '# backend/__init__.py\n'
-        '__all__: list[str] = []\n'
-        '__version__ = "0.1.0"\n'
-    )
+    minimal = '# backend/__init__.py\n__all__: list[str] = []\n__version__ = "0.1.0"\n'
     current = init_path.read_text(encoding="utf-8") if init_path.exists() else ""
     if current.strip() == minimal.strip():
         return False
     init_path.write_text(minimal, encoding="utf-8")
     return True
+
 
 def main() -> None:
     ensure_backend()
@@ -168,6 +193,6 @@ def main() -> None:
     else:
         print("No changes needed.")
 
+
 if __name__ == "__main__":
     main()
-

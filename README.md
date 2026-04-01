@@ -192,10 +192,13 @@ python -m venv .venv
 **Activate:**
 
 - Windows:
+
   ```powershell
   .venv\Scripts\activate
   ```
+
 - Linux/macOS:
+
   ```bash
   source .venv/bin/activate
   ```
@@ -348,15 +351,15 @@ print(classify_object(features))
 
 - **Model Type**: Decision Tree / Random Forest (scikit-learn)
 - **Predicted Classes**:
-    - Payload
-    - Rocket Body
-    - Debris
+  - Payload
+  - Rocket Body
+  - Debris
 - **Feature Set Examples**:
-    - Semi-major axis
-    - Eccentricity
-    - Inclination
-    - Orbital period
-    - Derived orbital parameters
+  - Semi-major axis
+  - Eccentricity
+  - Inclination
+  - Orbital period
+  - Derived orbital parameters
 - **Training Pipeline**:
     1. Data preprocessing
     2. Feature extraction

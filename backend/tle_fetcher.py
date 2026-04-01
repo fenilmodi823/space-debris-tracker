@@ -8,10 +8,7 @@ TLE Fetcher with on-disk cache for CelesTrak.
 
 from __future__ import annotations
 
-import os
-import time
 import errno
-import shutil
 import requests
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,13 +19,14 @@ try:
     from backend.config import CELESTRAK_TLE_URL
 except Exception:
     # fallback if run as a standalone (not recommended)
-    from backend.config import CELESTRAK_TLE_URL# type: ignore
+    from backend.config import CELESTRAK_TLE_URL  # type: ignore
 
 DATA_DIR = Path("data")
 TLE_ROOT = DATA_DIR / "tle"
 LATEST_TLE_POINTER = DATA_DIR / "latest_tle.txt"
 
 DEFAULT_CACHE_MINUTES = 180  # 3 hours
+
 
 def _ensure_dir(path: Path) -> None:
     try:
@@ -37,17 +35,20 @@ def _ensure_dir(path: Path) -> None:
         if e.errno != errno.EEXIST:
             raise
 
+
 def _list_cached(group: str) -> list[Path]:
     d = TLE_ROOT / group
     if not d.exists():
         return []
     return sorted([p for p in d.glob("*.tle") if p.is_file()])
 
+
 def _is_fresh(file: Path, cache_minutes: int) -> bool:
     if not file.exists():
         return False
     age = datetime.now() - datetime.fromtimestamp(file.stat().st_mtime)
     return age <= timedelta(minutes=cache_minutes)
+
 
 def _validate_tle_text(text: str) -> None:
     """
@@ -61,9 +62,10 @@ def _validate_tle_text(text: str) -> None:
         raise ValueError("TLE content length is not a multiple of 3 lines.")
 
     for i in range(0, len(lines), 3):
-        name, l1, l2 = lines[i], lines[i+1], lines[i+2]
+        name, l1, l2 = lines[i], lines[i + 1], lines[i + 2]
         if not (l1.startswith("1 ") and l2.startswith("2 ")):
             raise ValueError(f"TLE lines malformed near object '{name[:40]}'.")
+
 
 def _write_latest_pointer(target: Path) -> None:
     _ensure_dir(DATA_DIR)
@@ -74,13 +76,17 @@ def _write_latest_pointer(target: Path) -> None:
         # Non-fatal
         pass
 
+
 def _count_objects_from_text(text: str) -> int:
     # each object consumes 3 lines (name, L1, L2)
     return len([ln for ln in text.splitlines() if ln.strip()]) // 3
 
-def fetch_tle(group: str = "active",
-              cache_minutes: int = DEFAULT_CACHE_MINUTES,
-              base_url: Optional[str] = None) -> Tuple[Path, str]:
+
+def fetch_tle(
+    group: str = "active",
+    cache_minutes: int = DEFAULT_CACHE_MINUTES,
+    base_url: Optional[str] = None,
+) -> Tuple[Path, str]:
     """
     Fetch TLEs for the given group with caching.
     Returns (path_to_file, text_content).
@@ -125,10 +131,12 @@ def fetch_tle(group: str = "active",
 
     return out_path, text
 
+
 def get_latest_tle_path(group: str = "active") -> Optional[Path]:
     """Return the newest cached TLE path for a group, if any."""
     cached = _list_cached(group)
     return cached[-1] if cached else None
+
 
 def read_latest_tle(group: str = "active") -> Optional[str]:
     """Return text content of the newest cached TLE for a group, if any."""
@@ -136,6 +144,7 @@ def read_latest_tle(group: str = "active") -> Optional[str]:
     if p and p.exists():
         return p.read_text(encoding="utf-8", errors="ignore")
     return None
+
 
 if __name__ == "__main__":
     # Quick manual test

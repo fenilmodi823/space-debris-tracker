@@ -3,6 +3,7 @@ from scipy.spatial import KDTree
 from skyfield.api import load, EarthSatellite
 from typing import List, Set, Optional
 
+
 def check_collisions(
     satellites: List[EarthSatellite],
     threshold_km: float = 10.0,
@@ -10,7 +11,7 @@ def check_collisions(
     step_seconds: int = 60,
     verbose: bool = True,
     include_types: Optional[Set[str]] = None,
-    min_confidence: float = 0.0
+    min_confidence: float = 0.0,
 ) -> List[str]:
     """
     Optimized collision detection using KD-Trees (Spatial Indexing).
@@ -20,10 +21,10 @@ def check_collisions(
     t0 = ts.now()
     step_days = step_seconds / 86400.0
     n_steps = max(1, (minutes * 60) // step_seconds)
-    
+
     # Generate time steps
     times = [t0 + i * step_days for i in range(n_steps)]
-    
+
     # Filter satellites first
     valid_sats = []
     for sat in satellites:
@@ -43,9 +44,11 @@ def check_collisions(
         return []
 
     if verbose:
-        print(f"[⚡] Running KD-Tree collision check on {len(valid_sats)} satellites over {minutes} mins...")
+        print(
+            f"[⚡] Running KD-Tree collision check on {len(valid_sats)} satellites over {minutes} mins..."
+        )
 
-    alerts = set() # Use set to avoid duplicate alerts
+    alerts = set()  # Use set to avoid duplicate alerts
 
     # ---------------------------------------------------------
     # OPTIMIZATION: Evaluate positions in batches per time step
@@ -54,7 +57,7 @@ def check_collisions(
         # 1. Bulk calculate positions for this timestep
         positions = []
         current_sats = []
-        
+
         for sat in valid_sats:
             try:
                 # Skyfield position calculation
@@ -75,11 +78,11 @@ def check_collisions(
         pairs = tree.query_pairs(r=threshold_km)
 
         if pairs:
-            timestamp = t.utc_strftime('%H:%M:%S')
+            timestamp = t.utc_strftime("%H:%M:%S")
             for i, j in pairs:
                 s1 = current_sats[i]
                 s2 = current_sats[j]
-                
+
                 # Calculate exact distance
                 p1 = np.array(positions[i])
                 p2 = np.array(positions[j])
@@ -98,7 +101,7 @@ def check_collisions(
                 alerts.add(alert_msg)
 
     unique_alerts = sorted(list(alerts))
-    
+
     if verbose:
         if unique_alerts:
             for a in unique_alerts:

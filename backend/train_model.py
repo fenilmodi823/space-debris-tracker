@@ -7,7 +7,6 @@
 # Usage:
 #   python -m backend.train_model
 
-import os
 import sys
 from pathlib import Path
 
@@ -28,7 +27,9 @@ MODEL_PATH = MODEL_DIR / "object_classifier.joblib"
 
 if not DATA_PATH.exists():
     print(f"[X] Training data not found at {DATA_PATH.resolve()}")
-    print("    Run 'python -m backend.build_dataset' (if available) or ensure the CSV exists.")
+    print(
+        "    Run 'python -m backend.build_dataset' (if available) or ensure the CSV exists."
+    )
     sys.exit(1)
 
 df = pd.read_csv(DATA_PATH)
@@ -36,12 +37,19 @@ print(f"[i] Loaded {len(df)} rows with {len(df.columns)} columns from {DATA_PATH
 
 # --- column auto-mapping ---
 ALIASES = {
-    "inc_deg":      ["inc_deg", "INCLINATION", "Inclination", "inclination"],
-    "ecc":          ["ecc", "ECCENTRICITY", "Eccentricity", "eccentricity"],
-    "mm_rev_day":   ["mm_rev_day", "MEAN_MOTION", "MeanMotion", "mean_motion", "meanMotion"],
-    "bstar":        ["bstar", "BSTAR", "Bstar"],
-    "label":        ["label", "OBJECT_TYPE", "object_type"],
+    "inc_deg": ["inc_deg", "INCLINATION", "Inclination", "inclination"],
+    "ecc": ["ecc", "ECCENTRICITY", "Eccentricity", "eccentricity"],
+    "mm_rev_day": [
+        "mm_rev_day",
+        "MEAN_MOTION",
+        "MeanMotion",
+        "mean_motion",
+        "meanMotion",
+    ],
+    "bstar": ["bstar", "BSTAR", "Bstar"],
+    "label": ["label", "OBJECT_TYPE", "object_type"],
 }
+
 
 def pick(df, names):
     for n in names:
@@ -49,19 +57,29 @@ def pick(df, names):
             return n
     return None
 
-col_inc   = pick(df, ALIASES["inc_deg"])
-col_ecc   = pick(df, ALIASES["ecc"])
-col_mm    = pick(df, ALIASES["mm_rev_day"])
+
+col_inc = pick(df, ALIASES["inc_deg"])
+col_ecc = pick(df, ALIASES["ecc"])
+col_mm = pick(df, ALIASES["mm_rev_day"])
 col_bstar = pick(df, ALIASES["bstar"])
 col_label = pick(df, ALIASES["label"])
 
-missing = [n for n, c in [
-    ("inc_deg", col_inc), ("ecc", col_ecc), ("mm_rev_day", col_mm),
-    ("bstar", col_bstar), ("label", col_label)
-] if c is None]
+missing = [
+    n
+    for n, c in [
+        ("inc_deg", col_inc),
+        ("ecc", col_ecc),
+        ("mm_rev_day", col_mm),
+        ("bstar", col_bstar),
+        ("label", col_label),
+    ]
+    if c is None
+]
 if missing:
     print(f"[X] Could not find required columns: {missing}")
-    print("[hint] Re-run build_dataset.py with the CSV-based source, or share your CSV headers so I can map them.")
+    print(
+        "[hint] Re-run build_dataset.py with the CSV-based source, or share your CSV headers so I can map them."
+    )
     sys.exit(2)
 
 # Normalize and coerce numerics
@@ -84,7 +102,9 @@ print(f"[i] Dropped {before - after} rows with missing features; remaining: {aft
 
 if len(work) < 50:
     print(f"[X] Not enough rows to train (have {len(work)}).")
-    print("    Fix: build a broader dataset in build_dataset.py (e.g., include debris groups).")
+    print(
+        "    Fix: build a broader dataset in build_dataset.py (e.g., include debris groups)."
+    )
     sys.exit(3)
 
 X = work[[col_inc, col_ecc, col_mm, col_bstar]].to_numpy(dtype=float)
@@ -107,7 +127,9 @@ X_tr, X_te, y_tr, y_te = train_test_split(
 try:
     from imblearn.over_sampling import RandomOverSampler
 except ImportError:
-    print("[X] imbalanced-learn is not installed. Please run:  pip install imbalanced-learn")
+    print(
+        "[X] imbalanced-learn is not installed. Please run:  pip install imbalanced-learn"
+    )
     sys.exit(4)
 
 ros = RandomOverSampler(random_state=42)
@@ -131,8 +153,7 @@ print(classification_report(y_te, logreg.predict(X_te), digits=3, zero_division=
 
 print("\n=== Random Forest (oversampled train) ===")
 rf_bal = RandomForestClassifier(
-    n_estimators=600, max_depth=None,
-    class_weight=None, n_jobs=-1, random_state=42
+    n_estimators=600, max_depth=None, class_weight=None, n_jobs=-1, random_state=42
 )
 rf_bal.fit(X_tr_bal, y_tr_bal)
 pred_bal = rf_bal.predict(X_te)
@@ -143,13 +164,20 @@ print("Confusion matrix:\n", confusion_matrix(y_te, pred_bal))
 if len(np.unique(y)) > 1:
     skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     scores = cross_val_score(rf_bal, X, y, cv=skf, scoring="f1_macro", n_jobs=-1)
-    print(f"3-fold CV F1_macro (RF, oversampled train): {scores.mean():.3f} ± {scores.std():.3f}")
+    print(
+        f"3-fold CV F1_macro (RF, oversampled train): {scores.mean():.3f} ± {scores.std():.3f}"
+    )
 
 # --- Persist the oversampled RF as production model --------------------------
 joblib.dump(
     {
         "model": rf_bal,
-        "features": ["inc_deg", "ecc", "mm_rev_day", "bstar"],  # expected input order at inference
+        "features": [
+            "inc_deg",
+            "ecc",
+            "mm_rev_day",
+            "bstar",
+        ],  # expected input order at inference
         "classes_": rf_bal.classes_,
     },
     MODEL_PATH,

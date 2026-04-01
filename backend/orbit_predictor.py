@@ -41,7 +41,11 @@ def _fetch_tle_by_name(name: str, timeout: int = 30) -> tuple[str, str] | None:
         lines = [ln.strip() for ln in r.text.splitlines() if ln.strip()]
         # Expect sequences of 3 lines: NAME, L1, L2 (there can be multiple entries)
         for i in range(len(lines) - 2):
-            if lines[i].upper() == name.upper() and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+            if (
+                lines[i].upper() == name.upper()
+                and lines[i + 1].startswith("1 ")
+                and lines[i + 2].startswith("2 ")
+            ):
                 return lines[i + 1], lines[i + 2]
         return None
     except Exception:
@@ -54,14 +58,14 @@ def _fetch_tle_by_name(name: str, timeout: int = 30) -> tuple[str, str] | None:
 def load_tles(file_path: str = "data/latest_tle.txt") -> list[EarthSatellite]:
     """
     Load satellites from a local TLE file.
-    
+
     Supports mixed formats in the same file:
       - 3-line format: (Name, Line1, Line2)
       - 2-line format: (Line1, Line2) -> Name defaults to "UNKNOWN"
-      
+
     Args:
         file_path: Path to the TLE file.
-        
+
     Returns:
         List of Skyfield EarthSatellite objects.
     """
@@ -79,34 +83,38 @@ def load_tles(file_path: str = "data/latest_tle.txt") -> list[EarthSatellite]:
 
     i = 0
     n = len(lines)
-    
+
     while i < n:
         # Check for 3-line format: Name, Line1, Line2
         # We need at least 3 lines remaining, and the structure must match
-        if i + 2 < n and lines[i+1].startswith("1 ") and lines[i+2].startswith("2 "):
+        if (
+            i + 2 < n
+            and lines[i + 1].startswith("1 ")
+            and lines[i + 2].startswith("2 ")
+        ):
             name = lines[i]
-            line1 = lines[i+1]
-            line2 = lines[i+2]
+            line1 = lines[i + 1]
+            line2 = lines[i + 2]
             try:
                 sat = EarthSatellite(line1, line2, name, ts)
                 satellites.append(_attach_tle_metadata(sat, line1, line2))
             except Exception:
-                pass # Skip malformed TLEs
+                pass  # Skip malformed TLEs
             i += 3
-            
+
         # Check for 2-line format: Line1, Line2
         # We need at least 2 lines remaining
-        elif i + 1 < n and lines[i].startswith("1 ") and lines[i+1].startswith("2 "):
+        elif i + 1 < n and lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
             name = "UNKNOWN"
             line1 = lines[i]
-            line2 = lines[i+1]
+            line2 = lines[i + 1]
             try:
                 sat = EarthSatellite(line1, line2, name, ts)
                 satellites.append(_attach_tle_metadata(sat, line1, line2))
             except Exception:
                 pass
             i += 2
-            
+
         else:
             # Current line doesn't start a valid TLE block, skip it
             i += 1
@@ -119,7 +127,9 @@ def load_tles(file_path: str = "data/latest_tle.txt") -> list[EarthSatellite]:
 # Load famous satellites from online sources (preferred)
 # Falls back to local file if online fetch yields none
 # --------------------------------------------------------------------
-def load_famous_sats(names: list[str] | None = None, fallback_path: str = "data/famous_tles/famous.txt"):
+def load_famous_sats(
+    names: list[str] | None = None, fallback_path: str = "data/famous_tles/famous.txt"
+):
     """
     Try to load a curated set of famous satellites by NAME from CelesTrak (online).
     If none could be loaded, fall back to local file.

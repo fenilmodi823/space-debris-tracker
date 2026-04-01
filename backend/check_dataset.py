@@ -11,12 +11,19 @@ import pandas as pd
 DEFAULT_PATH = os.path.join("data", "tle_features_labeled.csv")
 
 FEATURE_CANDIDATES = {
-    "inc_deg":    ["inc_deg", "INCLINATION", "Inclination", "inclination"],
-    "ecc":        ["ecc", "ECCENTRICITY", "Eccentricity", "eccentricity"],
-    "mm_rev_day": ["mm_rev_day", "MEAN_MOTION", "MeanMotion", "mean_motion", "meanMotion"],
-    "bstar":      ["bstar", "BSTAR", "Bstar"],
-    "label":      ["label", "OBJECT_TYPE", "object_type"],
+    "inc_deg": ["inc_deg", "INCLINATION", "Inclination", "inclination"],
+    "ecc": ["ecc", "ECCENTRICITY", "Eccentricity", "eccentricity"],
+    "mm_rev_day": [
+        "mm_rev_day",
+        "MEAN_MOTION",
+        "MeanMotion",
+        "mean_motion",
+        "meanMotion",
+    ],
+    "bstar": ["bstar", "BSTAR", "Bstar"],
+    "label": ["label", "OBJECT_TYPE", "object_type"],
 }
+
 
 def pick_column(df, candidates):
     """Return the first column name from candidates that exists in df.columns."""
@@ -25,9 +32,15 @@ def pick_column(df, candidates):
             return name
     return None
 
+
 def main():
     ap = argparse.ArgumentParser(description="Check training dataset CSV.")
-    ap.add_argument("--path", type=str, default=DEFAULT_PATH, help="Path to CSV (default: data/tle_features_labeled.csv)")
+    ap.add_argument(
+        "--path",
+        type=str,
+        default=DEFAULT_PATH,
+        help="Path to CSV (default: data/tle_features_labeled.csv)",
+    )
     args = ap.parse_args()
 
     csv_path = args.path
@@ -35,7 +48,9 @@ def main():
     if not os.path.exists(csv_path):
         print("[X] File not found.")
         print("    - Make sure you ran:  python backend/build_dataset.py")
-        print("    - Or pass a custom path:  python backend/check_dataset.py --path <your_csv>")
+        print(
+            "    - Or pass a custom path:  python backend/check_dataset.py --path <your_csv>"
+        )
         sys.exit(1)
 
     try:
@@ -57,13 +72,15 @@ def main():
 
     if df.shape[0] == 0:
         print("\n[!] The CSV has 0 rows. Rebuild dataset with a broader group, e.g.:")
-        print('    In build_dataset.py include debris groups (e.g., last-30-days, cosmos-2251-debris, iridium-33-debris)')
+        print(
+            "    In build_dataset.py include debris groups (e.g., last-30-days, cosmos-2251-debris, iridium-33-debris)"
+        )
         sys.exit(0)
 
     # Map columns
-    col_inc   = pick_column(df, FEATURE_CANDIDATES["inc_deg"])
-    col_ecc   = pick_column(df, FEATURE_CANDIDATES["ecc"])
-    col_mm    = pick_column(df, FEATURE_CANDIDATES["mm_rev_day"])
+    col_inc = pick_column(df, FEATURE_CANDIDATES["inc_deg"])
+    col_ecc = pick_column(df, FEATURE_CANDIDATES["ecc"])
+    col_mm = pick_column(df, FEATURE_CANDIDATES["mm_rev_day"])
     col_bstar = pick_column(df, FEATURE_CANDIDATES["bstar"])
     col_label = pick_column(df, FEATURE_CANDIDATES["label"])
 
@@ -74,12 +91,22 @@ def main():
     print("bstar     ->", col_bstar)
     print("label     ->", col_label)
 
-    missing = [k for k, v in {
-        "inc_deg": col_inc, "ecc": col_ecc, "mm_rev_day": col_mm, "bstar": col_bstar, "label": col_label
-    }.items() if v is None]
+    missing = [
+        k
+        for k, v in {
+            "inc_deg": col_inc,
+            "ecc": col_ecc,
+            "mm_rev_day": col_mm,
+            "bstar": col_bstar,
+            "label": col_label,
+        }.items()
+        if v is None
+    ]
     if missing:
         print(f"\n[!] Missing required columns (or aliases): {missing}")
-        print("    Tip: Re-run build_dataset.py, or share your headers so we can update the mapper.")
+        print(
+            "    Tip: Re-run build_dataset.py, or share your headers so we can update the mapper."
+        )
         # Still show a preview
         print("\n=== HEAD (first 5 rows) ===")
         print(df.head(5).to_string(index=False))
@@ -97,7 +124,9 @@ def main():
     # Light advice if severely imbalanced
     if (counts.min() < 10) and (counts.max() > 5 * max(1, counts.min())):
         print("\n[tip] Labels look imbalanced. Consider:")
-        print("      - Including more groups in build_dataset.py (debris clusters, etc.)")
+        print(
+            "      - Including more groups in build_dataset.py (debris clusters, etc.)"
+        )
         print("      - Using oversampling in train_model.py (RandomOverSampler)")
 
     print("\n=== NaN COUNTS (key features) ===")
@@ -118,6 +147,7 @@ def main():
     print(subset[cols_to_show].head(5).to_string(index=False))
 
     print("\n[✔] Dataset check complete.")
+
 
 if __name__ == "__main__":
     main()

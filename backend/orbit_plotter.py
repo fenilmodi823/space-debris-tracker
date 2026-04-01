@@ -9,6 +9,7 @@ EARTH_RADIUS_KM = 6371.0
 TEXTURES_DIR = os.path.join("assets", "textures")
 EARTH_DAY_TEX = os.path.join(TEXTURES_DIR, "earth_day.jpg")
 
+
 # ---------------------------
 # Helper: Earth & Rings
 # ---------------------------
@@ -24,33 +25,47 @@ def _add_textured_earth(plotter: pv.Plotter):
     except Exception:
         plotter.add_mesh(sphere, color="blue", name="Earth")
 
+
 def _add_orbit_rings(plotter: pv.Plotter):
     rings = [(2000, "green", "LEO"), (35786, "blue", "GEO")]
     actors = []
     for alt, col, label in rings:
-        mesh = pv.Sphere(radius=EARTH_RADIUS_KM + alt, theta_resolution=60, phi_resolution=60)
+        mesh = pv.Sphere(
+            radius=EARTH_RADIUS_KM + alt, theta_resolution=60, phi_resolution=60
+        )
         actor = plotter.add_mesh(mesh, color=col, opacity=0.1, name=label)
         actors.append(actor)
     return actors
 
+
 # ---------------------------
 # Main 3D Plotter with UI
 # ---------------------------
-def plot_satellite_orbits_3d(satellites: List[Any], minutes: int = 30, step_seconds: int = 60, max_satellites: int = 200):
+def plot_satellite_orbits_3d(
+    satellites: List[Any],
+    minutes: int = 30,
+    step_seconds: int = 60,
+    max_satellites: int = 200,
+):
     if not satellites:
         print("No satellites to plot.")
         return
 
     # Limit satellites for performance
     satellites = satellites[:max_satellites]
-    
+
     # Setup Time
     ts = load.timescale()
     t0 = ts.now()
-    times = [t0 + (i * step_seconds / 86400.0) for i in range(int((minutes * 60) / step_seconds))]
+    times = [
+        t0 + (i * step_seconds / 86400.0)
+        for i in range(int((minutes * 60) / step_seconds))
+    ]
 
     # Setup Plotter
-    plotter = pv.Plotter(window_size=[1200, 800], title="Space Debris Tracker - Advanced View")
+    plotter = pv.Plotter(
+        window_size=[1200, 800], title="Space Debris Tracker - Advanced View"
+    )
     plotter.set_background("black")  # type: ignore
     _add_textured_earth(plotter)
     _add_orbit_rings(plotter)
@@ -61,7 +76,7 @@ def plot_satellite_orbits_3d(satellites: List[Any], minutes: int = 30, step_seco
         "Rocket Body": [],
         "Debris": [],
         "Unknown": [],
-        "Labels": []
+        "Labels": [],
     }
 
     print(f"[Visualizer] Computing orbits for {len(satellites)} objects...")
@@ -81,12 +96,12 @@ def plot_satellite_orbits_3d(satellites: List[Any], minutes: int = 30, step_seco
         stype = getattr(sat, "pred_type", "Unknown")
         if stype not in category_actors:
             stype = "Unknown"
-        
+
         color_map = {
             "Payload": "lime",
             "Rocket Body": "yellow",
             "Debris": "red",
-            "Unknown": "grey"
+            "Unknown": "grey",
         }
         color = color_map.get(stype, "white")
 
@@ -105,44 +120,60 @@ def plot_satellite_orbits_3d(satellites: List[Any], minutes: int = 30, step_seco
         label_text = f"{sat.name}"
         # point_labels returns a VTK actor we need to track
         actor_label = plotter.add_point_labels(
-            np.array([pos_now]), [label_text], 
-            font_size=10, text_color=color, always_visible=False
+            np.array([pos_now]),
+            [label_text],
+            font_size=10,
+            text_color=color,
+            always_visible=False,
         )
         category_actors["Labels"].append(actor_label)
 
     # ---------------------------------------------------------
     # UI WIDGETS (Interactive Controls)
     # ---------------------------------------------------------
-    
+
     # Toggle Function Factory
     def create_toggle(category):
         def toggle_vis(state):
             for actor in category_actors[category]:
                 actor.SetVisibility(state)
+
         return toggle_vis
-    
+
     start_y = 10
-    
+
     # 1. Debris Toggle
     plotter.add_checkbox_button_widget(
-        create_toggle("Debris"), value=True, position=(10, start_y), size=30, 
-        color_on='red', color_off='grey'
+        create_toggle("Debris"),
+        value=True,
+        position=(10, start_y),
+        size=30,
+        color_on="red",
+        color_off="grey",
     )
-    plotter.add_text("Show Debris", position=(50, start_y+5), font_size=12)
-    
+    plotter.add_text("Show Debris", position=(50, start_y + 5), font_size=12)
+
     # 2. Payload Toggle
     plotter.add_checkbox_button_widget(
-        create_toggle("Payload"), value=True, position=(10, start_y+40), size=30, 
-        color_on='lime', color_off='grey'
+        create_toggle("Payload"),
+        value=True,
+        position=(10, start_y + 40),
+        size=30,
+        color_on="lime",
+        color_off="grey",
     )
-    plotter.add_text("Show Payloads", position=(50, start_y+45), font_size=12)
+    plotter.add_text("Show Payloads", position=(50, start_y + 45), font_size=12)
 
     # 3. Labels Toggle
     plotter.add_checkbox_button_widget(
-        create_toggle("Labels"), value=True, position=(10, start_y+80), size=30, 
-        color_on='white', color_off='grey'
+        create_toggle("Labels"),
+        value=True,
+        position=(10, start_y + 80),
+        size=30,
+        color_on="white",
+        color_off="grey",
     )
-    plotter.add_text("Show Labels", position=(50, start_y+85), font_size=12)
+    plotter.add_text("Show Labels", position=(50, start_y + 85), font_size=12)
 
     plotter.add_axes()  # type: ignore
     plotter.show()

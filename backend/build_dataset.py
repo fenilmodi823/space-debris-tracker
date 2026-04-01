@@ -24,11 +24,13 @@ R_EARTH_KM = 6378.137
 DAY_SEC = 86400.0
 TWOPI = 2.0 * math.pi
 
+
 def _safe_float(text: str, default=float("nan")) -> float:
     try:
         return float(text)
     except Exception:
         return default
+
 
 def parse_bstar(line1: str) -> float:
     """BSTAR drag term from TLE line 1 (cols 54–61)."""
@@ -45,7 +47,8 @@ def parse_bstar(line1: str) -> float:
         exponent = int(expo)
     except Exception:
         return float("nan")
-    return mantissa * (10.0 ** exponent)
+    return mantissa * (10.0**exponent)
+
 
 def parse_epoch(line1: str) -> datetime | None:
     """TLE epoch: columns 19–32 -> datetime (UTC)."""
@@ -58,27 +61,39 @@ def parse_epoch(line1: str) -> datetime | None:
     except Exception:
         return None
 
+
 def mean_motion_to_sma_km(n_rev_per_day: float) -> float:
     """Convert mean motion (rev/day) to semi-major axis a (km)."""
     if not math.isfinite(n_rev_per_day) or n_rev_per_day <= 0:
         return float("nan")
     n_rad_s = n_rev_per_day * TWOPI / DAY_SEC
-    return (MU_EARTH_KM3_S2 / (n_rad_s ** 2.0)) ** (1.0 / 3.0)
+    return (MU_EARTH_KM3_S2 / (n_rad_s**2.0)) ** (1.0 / 3.0)
+
 
 def fetch_satcat() -> pd.DataFrame:
     print("[*] Downloading CelesTrak SATCAT ...")
     usecols = [
-        "NORAD_CAT_ID", "OBJECT_TYPE", "OPS_STATUS_CODE", "COUNTRY",
-        "LAUNCH_DATE", "DECAY_DATE", "PERIOD", "INCLINATION",
-        "APOAPSIS", "PERIAPSIS"
+        "NORAD_CAT_ID",
+        "OBJECT_TYPE",
+        "OPS_STATUS_CODE",
+        "COUNTRY",
+        "LAUNCH_DATE",
+        "DECAY_DATE",
+        "PERIOD",
+        "INCLINATION",
+        "APOAPSIS",
+        "PERIAPSIS",
     ]
     r = requests.get(CELESTRAK_SATCAT, timeout=60)
     r.raise_for_status()
     data = io.StringIO(r.content.decode("utf-8", errors="ignore"))
-    satcat = pd.read_csv(data, usecols=lambda c: c in usecols, sep=None, engine="python")
+    satcat = pd.read_csv(
+        data, usecols=lambda c: c in usecols, sep=None, engine="python"
+    )
     satcat = satcat.rename(columns={"NORAD_CAT_ID": "norad", "OBJECT_TYPE": "label"})
     # Keep label raw for mapping later
     return satcat
+
 
 # ---------- NEW: Normalize GP CSV columns to our schema ----------
 def normalize_gp_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -122,6 +137,7 @@ def normalize_gp_columns(df: pd.DataFrame) -> pd.DataFrame:
         df["norad"] = pd.to_numeric(df["norad"], errors="coerce").astype("Int64")
     return df
 
+
 # ---------- UPDATED: GP CSV fetch with guard ----------
 def fetch_gp_csv(url: str) -> pd.DataFrame:
     print("[*] Downloading CelesTrak GP CSV ...")
@@ -134,13 +150,14 @@ def fetch_gp_csv(url: str) -> pd.DataFrame:
     df = pd.read_csv(io.StringIO(text))
     return normalize_gp_columns(df)
 
+
 def main():
     try:
         # --- Collect multiple groups for a balanced dataset ---
         GROUPS = [
-            "last-30-days",          # broad mix
-            "cosmos-2251-debris",    # debris
-            "iridium-33-debris",     # debris
+            "last-30-days",  # broad mix
+            "cosmos-2251-debris",  # debris
+            "iridium-33-debris",  # debris
         ]
         dfs = []
         for g in GROUPS:
@@ -160,7 +177,11 @@ def main():
             print("[X] 'norad' column missing after normalization.")
             sys.exit(2)
 
-        tle_df = tle_df.dropna(subset=["norad"]).drop_duplicates(subset=["norad"]).reset_index(drop=True)
+        tle_df = (
+            tle_df.dropna(subset=["norad"])
+            .drop_duplicates(subset=["norad"])
+            .reset_index(drop=True)
+        )
         print(f"[+] Combined dataset: {len(tle_df)} unique objects")
 
         # Save raw features (for EDA/inference)
@@ -172,7 +193,9 @@ def main():
         satcat = fetch_satcat()
 
         # Normalize types for join
-        satcat["norad"] = pd.to_numeric(satcat["norad"], errors="coerce").astype("Int64")
+        satcat["norad"] = pd.to_numeric(satcat["norad"], errors="coerce").astype(
+            "Int64"
+        )
         print(f"[*] TLE objects before merge: {len(tle_df)}")
         print(f"[*] SATCAT rows: {len(satcat)}")
 
@@ -181,14 +204,23 @@ def main():
         # Diagnostics BEFORE filtering
         non_null_labels = merged["label"].notna().sum()
         print(f"[*] After merge, rows with a label: {non_null_labels} / {len(merged)}")
-        print("    Unique labels (raw):", merged["label"].dropna().astype(str).str.strip().value_counts().head(10).to_dict())
+        print(
+            "    Unique labels (raw):",
+            merged["label"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .value_counts()
+            .head(10)
+            .to_dict(),
+        )
 
         # Map abbreviations to full names
         merged["label"] = merged["label"].astype("string").str.strip().str.upper()
         abbr_map = {
             "PAY": "Payload",
             "R/B": "Rocket Body",
-            "RB":  "Rocket Body",
+            "RB": "Rocket Body",
             "DEB": "Debris",
             "UNK": "Unknown",
         }
@@ -198,15 +230,21 @@ def main():
         before_filter = len(merged)
         merged = merged[merged["label"].isin(VALID)].copy()
         after_filter = len(merged)
-        print(f"[*] After filtering to {VALID}: {after_filter} / {before_filter} rows remain")
+        print(
+            f"[*] After filtering to {VALID}: {after_filter} / {before_filter} rows remain"
+        )
 
         # Basic cleaning: drop rows with missing core features
         core_cols = ["inc_deg", "ecc", "mm_rev_day", "bstar"]
         for c in core_cols:
             if c not in merged.columns:
                 print(f"[!] Missing expected feature column: {c}")
-        merged_clean = merged.dropna(subset=[c for c in core_cols if c in merged.columns]).reset_index(drop=True)
-        print(f"[*] After dropping rows with missing features: {len(merged_clean)} rows")
+        merged_clean = merged.dropna(
+            subset=[c for c in core_cols if c in merged.columns]
+        ).reset_index(drop=True)
+        print(
+            f"[*] After dropping rows with missing features: {len(merged_clean)} rows"
+        )
 
         out_path = os.path.join(OUT_DIR, "tle_features_labeled.csv")
         merged_clean.to_csv(out_path, index=False)
@@ -216,7 +254,9 @@ def main():
         print("\nClass distribution:")
         print(merged_clean["label"].value_counts())
 
-        print("\nDone. Use `tle_features_labeled.csv` for training, and keep `tle_features_all.csv` for inference/EDA.")
+        print(
+            "\nDone. Use `tle_features_labeled.csv` for training, and keep `tle_features_all.csv` for inference/EDA."
+        )
 
     except requests.HTTPError as e:
         print("HTTP error while downloading datasets:", e)
@@ -224,6 +264,7 @@ def main():
     except Exception as e:
         print("Unexpected error:", e)
         sys.exit(2)
+
 
 if __name__ == "__main__":
     main()

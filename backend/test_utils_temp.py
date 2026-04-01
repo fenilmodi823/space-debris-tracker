@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils import calculate_distance_km
 
+
 def test():
     l1 = [1.0, 2.0, 3.0]
     l2 = [4.0, 5.0, 6.0]
@@ -20,6 +21,7 @@ def test():
 
     assert abs(dist_l - dist_a) < 1e-9
     print("Test passed")
+
 
 if __name__ == "__main__":
     test()
