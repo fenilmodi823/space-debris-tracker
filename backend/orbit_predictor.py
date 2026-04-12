@@ -1,5 +1,5 @@
 # orbit_predictor.py
-# Loads general & famous satellites from TLEs (online & offline) and prints positions
+# Loads general & famous satellites from TLEs (online & offline)
 
 from __future__ import annotations
 
@@ -189,25 +189,3 @@ def load_famous_sats_from_file(tle_path: str = "data/famous_tles/famous.txt"):
     return sats
 
 
-# --------------------------------------------------------------------
-# Quick print of satellite lat/lon positions
-# --------------------------------------------------------------------
-def print_positions(satellites):
-    ts = load.timescale()
-    t = ts.now()
-    count = 0
-
-    for sat in satellites:
-        try:
-            geocentric = sat.at(t)
-            subpoint = wgs84.subpoint(geocentric)
-            lat = subpoint.latitude.degrees
-            lon = subpoint.longitude.degrees
-
-            if not (lat != lat or lon != lon):  # Skip NaN
-                print(f"{sat.name}: lat={lat:.2f}, lon={lon:.2f}")
-                count += 1
-                if count >= 10:
-                    break
-        except Exception:
-            continue

@@ -26,6 +26,13 @@ const COSMOS_2251_TLE = {
     "2 22675  74.0483 283.4385 0015509 255.4859 104.4770 14.28313437775569",
 };
 
+// Helper to calculate velocity magnitude from satellite.js velocity vector
+function getVelocityMagnitude(velocity) {
+  return Math.sqrt(
+    velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z,
+  );
+}
+
 // Dynamic Earth component updating rotation based on GMST
 function DynamicEarth({ offsetMinutes, baseTime }) {
   const groupRef = useRef();
@@ -397,25 +404,6 @@ function SatelliteMesh({
   );
 }
 
-function calcTelemetry(satrec) {
-  const posVel = satellite.propagate(satrec, new Date());
-  let velocity = 0;
-  if (posVel.velocity && posVel.velocity !== true) {
-    const { x, y, z } = posVel.velocity;
-    velocity = Math.sqrt(x * x + y * y + z * z);
-  }
-  const a = satrec.a * 6371.0;
-  const e = satrec.ecco;
-  const perigee = a * (1 - e) - 6371.0;
-  const apogee = a * (1 + e) - 6371.0;
-
-  return {
-    velocity: velocity.toFixed(2),
-    perigee: perigee.toFixed(1),
-    apogee: apogee.toFixed(1),
-  };
-}
-
 // ML Collision Simulation visual component
 function CollisionEvent({ target, offsetMinutes, baseTime }) {
   const groupRef = useRef();
@@ -559,7 +547,6 @@ function App() {
 
   const [isSimulating, setIsSimulating] = useState(false);
   const [demoTarget, setDemoTarget] = useState(null);
-  const [_simTelemetry, setSimTelemetry] = useState({ primary: {}, rogue: {} });
   const [simElapsed, setSimElapsed] = useState(0);
   const [telemetry, setTelemetry] = useState(null);
   const [showSwarm, setShowSwarm] = useState(false);
@@ -588,11 +575,7 @@ function App() {
         const lat = satellite.degreesLat(positionGd.latitude);
         const height = positionGd.height;
 
-        const v = Math.sqrt(
-          velocity.x * velocity.x +
-            velocity.y * velocity.y +
-            velocity.z * velocity.z,
-        );
+        const v = getVelocityMagnitude(velocity);
         const inc = satrec.inclo * (180 / Math.PI); // radians to degrees
         const period = (2 * Math.PI) / satrec.no; // minutes
 
@@ -633,29 +616,11 @@ function App() {
   const runSimulation = () => {
     if (satellites.length > 0) {
       const target = satellites[0];
-      const satrec = satellite.twoline2satrec(target.line1, target.line2);
-      const targetData = calcTelemetry(satrec);
 
       setIsSimulating(true);
       setDemoTarget(target);
       setSelectedSat(target);
       setPlaybackRate(0);
-
-      setSimTelemetry({
-        primary: {
-          name: target.name,
-          speed: `${targetData.velocity} km/s`,
-          perigee: `${targetData.perigee} km`,
-          apogee: `${targetData.apogee} km`,
-        },
-        rogue: {
-          name: "UNKNOWN KINEMATIC ANOMALY",
-          speed: "12.41 km/s",
-          perigee: "382.1 km",
-          apogee: "520.4 km",
-          angle: "68.2° (Hypervelocity)",
-        },
-      });
     }
   };
 
@@ -684,11 +649,7 @@ function App() {
         const lat = satellite.degreesLat(positionGd.latitude);
         const height = positionGd.height;
 
-        const v = Math.sqrt(
-          velocity.x * velocity.x +
-            velocity.y * velocity.y +
-            velocity.z * velocity.z,
-        );
+        const v = getVelocityMagnitude(velocity);
 
         csvContent += `${t},${stepDate.toISOString()},${lat.toFixed(4)},${lon.toFixed(4)},${height.toFixed(4)},${v.toFixed(4)}\n`;
       }

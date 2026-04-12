@@ -1,5 +1,4 @@
 # backend/train_model.py
-# Python 3.10+
 #
 # Trains a Random Forest classifier to predict object type (Payload, Rocket Body, Debris)
 # based on orbital parameters (Inclination, Eccentricity, Mean Motion, BSTAR).
