@@ -7,7 +7,7 @@ from backend.tle_fetcher import fetch_tle, get_latest_tle_path
 
 
 _THIS = Path(__file__).resolve()
-_REPO = _THIS.parents[2]  # D:\VS Code\Space Debris Tracker
+_REPO = _THIS.parents[2]  # D:\VS Code\orcas
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 

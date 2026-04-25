@@ -5,7 +5,7 @@ from requests.exceptions import RequestException, Timeout
 from pathlib import Path
 
 _THIS = Path(__file__).resolve()
-_REPO = _THIS.parents[2]  # D:\VS Code\Space Debris Tracker
+_REPO = _THIS.parents[2]  # D:\VS Code\orcas
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
@@ -15,7 +15,7 @@ if str(_REPO) not in sys.path:
 
 # Ensure we can import backend.config whether run from repo root or scripts/
 this_file = Path(__file__).resolve()
-repo_root = this_file.parents[2]  # .../Space Debris Tracker/
+repo_root = this_file.parents[2]  # .../orcas/
 backend_root = repo_root / "backend"
 sys.path.insert(0, str(repo_root))  # so 'backend' is importable as a package
 sys.path.insert(0, str(backend_root))

@@ -786,7 +786,7 @@ function App() {
             paddingBottom: "10px",
           }}
         >
-          SPACE DEBRIS TRACKING SYSTEM
+          ORCAS DASHBOARD
         </div>
         <Select
           options={satellites.map((s) => ({ value: s, label: s.name }))}

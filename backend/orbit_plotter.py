@@ -64,7 +64,7 @@ def plot_satellite_orbits_3d(
 
     # Setup Plotter
     plotter = pv.Plotter(
-        window_size=[1200, 800], title="Space Debris Tracker - Advanced View"
+        window_size=[1200, 800], title="ORCAS - Advanced View"
     )
     plotter.set_background("black")  # type: ignore
     _add_textured_earth(plotter)

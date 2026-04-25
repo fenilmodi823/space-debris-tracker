@@ -1,5 +1,5 @@
 # config.py
-# Global configuration for the Space Debris Tracker project
+# Global configuration for the ORCAS project
 
 import os
 

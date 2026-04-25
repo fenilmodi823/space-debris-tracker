@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "space-debris-tracker"
+name = "orcas"
 version = "1.0.0"
 description = "Machine-Learning-Enhanced Space Debris Tracking System with 2D/3D Visualization, Collision Alerts, and Satellite Analysis Tools."
 authors = [
@@ -59,10 +59,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fenilmodi823/space-debris-tracker"
-Documentation = "https://github.com/fenilmodi823/space-debris-tracker"
-Source = "https://github.com/fenilmodi823/space-debris-tracker"
-Issues = "https://github.com/fenilmodi823/space-debris-tracker/issues"
+Homepage = "https://github.com/fenilmodi823/orcas"
+Documentation = "https://github.com/fenilmodi823/orcas"
+Source = "https://github.com/fenilmodi823/orcas"
+Issues = "https://github.com/fenilmodi823/orcas/issues"
 
 [tool.setuptools]
 packages = ["backend"]

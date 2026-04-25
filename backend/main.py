@@ -1,4 +1,4 @@
-# === Space Debris Tracker: Main Script ===
+# === ORCAS: Main Script ===
 # Orchestrates TLE fetching, satellite loading, ML annotation,
 # collision checking, and visualization (2D live & 3D).
 
@@ -240,7 +240,7 @@ def _safe(func, *args, **kwargs):
         return None
 
 def main():
-    log.info("=== Space Debris Tracker ===")
+    log.info("=== ORCAS ===")
     log.info("Root: %s", ROOT)
     log.info("CWD : %s", os.getcwd())
 

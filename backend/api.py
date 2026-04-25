@@ -4,7 +4,7 @@ from skyfield.api import load, wgs84
 from backend.tle_fetcher import fetch_tle
 from backend.orbit_predictor import load_tles
 
-app = FastAPI(title="Space Debris Tracker API")
+app = FastAPI(title="ORCAS API")
 
 # Configure CORS to allow the Vite React frontend (typically running on port 5173)
 # and allow all origins for ease of development.

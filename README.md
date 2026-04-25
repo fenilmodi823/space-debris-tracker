@@ -1,4 +1,4 @@
-# Space Debris Tracking and ML Conjunction Assessment System
+# ORCAS (Orbital Risk and Conjunction Assessment System)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -32,7 +32,7 @@ Designed with a research-style scientific structure inspired by modern Space Sit
 
 ## Overview
 
-The Space Debris Tracking System is a modular Python-based toolkit capable of:
+The ORCAS is a modular Python-based toolkit capable of:
 
 - Fetching and parsing real orbital datasets such as TLEs
 - Propagating satellite and debris orbits
@@ -116,7 +116,7 @@ graph TD
 ## Project Structure
 
 ```text
-space-debris-tracker/
+orcas/
 ├─ pyproject.toml              # Project metadata and dependencies (Python 3.11)
 ├─ requirements.txt            # Pinned dependencies
 ├─ README.md                   # You are here
@@ -179,8 +179,8 @@ space-debris-tracker/
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/fenilmodi823/space-debris-tracker.git
-cd space-debris-tracker
+git clone https://github.com/fenilmodi823/orcas.git
+cd orcas
 ```
 
 ### Create a Virtual Environment
